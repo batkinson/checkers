@@ -259,6 +259,7 @@ def main():
                 black_pieces = black_pieces + 1
         if red_pieces > 0 or black_pieces == 0:
             font = pygame.font.Font(None, 36)
+            text = font.render("", 1, (255, 255, 255))
             if red_pieces == 0:
                 text = font.render("The black player won!", 1, (255, 255, 255))
                 print "The black player won!"
