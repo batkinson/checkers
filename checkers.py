@@ -23,7 +23,7 @@ class CheckerPiece(pygame.sprite.Sprite):
             self.image, self.rect = self.load_png('black-piece.png')
         else:
             print 'Invalid player name: ', player
-            raise SystemExit, message
+            raise SystemExit
         self.player = player
         self.rect.centerx = centerx
         self.rect.centery = centery
@@ -69,7 +69,7 @@ class BoardSpace(pygame.sprite.Sprite):
             self.image, self.rect = self.load_png('tan-space.png')
         else:
             print 'Invalid space color: ', color
-            raise SystemExit, message
+            raise SystemExit
         self.rect.topleft = initial_position
 
     def load_png(self,name):
