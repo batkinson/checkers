@@ -10,7 +10,25 @@ from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 
 
 brown = (143,96,40)
+    
 tile_width = 75
+
+
+def load_png(name, colorkey=None):
+    """ Load image and return image object"""
+    fullname = os.path.join('images', name)
+    try:
+        image = pygame.image.load(fullname)
+        if colorkey:
+            image.set_colorkey(brown)   # make all brown transparent
+        if image.get_alpha() is None:
+            image = image.convert()
+        else:
+            image = image.convert_alpha()
+    except pygame.error, message:
+            print 'Cannot load image: ', fullname
+            raise SystemExit, message
+    return image, image.get_rect()
 
 class CheckerPiece(pygame.sprite.Sprite):
 
@@ -21,9 +39,9 @@ class CheckerPiece(pygame.sprite.Sprite):
         screen = pygame.display.get_surface()
         self.area = screen.get_rect()
         if player == "red":
-            self.image, self.rect = self.load_png('red-piece.png')
+            self.image, self.rect = load_png('red-piece.png', brown)
         elif player == "black":
-            self.image, self.rect = self.load_png('black-piece.png')
+            self.image, self.rect = load_png('black-piece.png', brown)
         else:
             print 'Invalid player name: ', player
             raise SystemExit
@@ -32,27 +50,12 @@ class CheckerPiece(pygame.sprite.Sprite):
         self.rect.centery = centery
         self.type = "man"
 
-    def load_png(self,name):
-        """ Load image and return image object"""
-        fullname = os.path.join('images', name)
-        try:
-            image = pygame.image.load(fullname)
-            image.set_colorkey(brown)   # make all brown transparent
-            if image.get_alpha() is None:
-                image = image.convert()
-            else:
-                image = image.convert_alpha()
-        except pygame.error, message:
-                print 'Cannot load image: ', fullname
-                raise SystemExit, message
-        return image, image.get_rect()
-
     def king(self):
         self.type = "king"
         if self.player == "red":
-            self.image, self.rect = self.load_png('red-piece-king.png')
+            self.image, self.rect = load_png('red-piece-king.png', brown)
         elif self.player == "black":
-            self.image, self.rect = self.load_png('black-piece-king.png')
+            self.image, self.rect = load_png('black-piece-king.png', brown)
 
     def update(self,position):
         self.rect.centerx = position[0]
@@ -70,27 +73,14 @@ class BoardSpace(pygame.sprite.Sprite):
         self.row = row
         self.col = col
         if color == "brown":
-            self.image, self.rect = self.load_png('brown-space.png')
+            self.image, self.rect = load_png('brown-space.png')
         elif color == "tan":
-            self.image, self.rect = self.load_png('tan-space.png')
+            self.image, self.rect = load_png('tan-space.png')
         else:
             print 'Invalid space color: ', color
             raise SystemExit
         self.rect.topleft = initial_position
-
-    def load_png(self,name):
-        """ Load image and return image object"""
-        fullname = os.path.join('images', name)
-        try:
-            image = pygame.image.load(fullname)
-            if image.get_alpha() is None:
-                image = image.convert()
-            else:
-                image = image.convert_alpha()
-        except pygame.error, message:
-                print 'Cannot load image: ', fullname
-                raise SystemExit, message
-        return image, image.get_rect()    
+ 
 
 def main():
     # Initialise screen
