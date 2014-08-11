@@ -13,6 +13,9 @@ brown = (143,96,40)
 tile_width = 75
 
 class CheckerPiece(pygame.sprite.Sprite):
+
+    """A sprite for a single piece."""
+
     def __init__(self, player,(centerx,centery)):
         pygame.sprite.Sprite.__init__(self)
         screen = pygame.display.get_surface()
@@ -56,6 +59,9 @@ class CheckerPiece(pygame.sprite.Sprite):
         self.rect.centery = position[1]
 
 class BoardSpace(pygame.sprite.Sprite):
+
+    """A sprite abstraction for game board spaces."""
+
     def __init__(self,initial_position,color,row,col):
         pygame.sprite.Sprite.__init__(self)
         screen = pygame.display.get_surface()
@@ -119,10 +125,14 @@ def main():
     # Set up checker pieces
     for row in range(8):
         for col in range(8):
+
+            # Toggle player based on piece starting position
             if row < 3:
                 player = "black"
             elif row > 4:
                 player = "red"
+
+            # If in player starting space, create and add appropriate piece
             if row < 3 or row > 4:
                 top = tile_width*row
                 left = tile_width*col
