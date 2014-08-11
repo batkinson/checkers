@@ -5,8 +5,9 @@
 #
 # Released under the GNU General Public License
 
-import pygame,os,math
-from pygame.locals import *
+import pygame, os
+from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
+
 
 brown = (143,96,40)
 tile_width = 75
