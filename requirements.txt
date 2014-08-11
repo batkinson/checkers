@@ -1,0 +1,4 @@
+gnureadline==6.3.3
+ipython==2.2.0
+pygame==1.9.2a0
+wsgiref==0.1.2
