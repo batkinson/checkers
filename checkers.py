@@ -10,6 +10,7 @@ from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 
 
 brown = (143,96,40)
+white = (255,255,255)
     
 tile_width = 75
 
@@ -29,7 +30,7 @@ def load_png(name, colorkey=None):
             print 'Cannot load image: ', fullname
             raise SystemExit, message
     return image, image.get_rect()
-
+ 
 class CheckerPiece(pygame.sprite.Sprite):
 
     """A sprite for a single piece."""
@@ -99,22 +100,17 @@ def main():
     pieces = pygame.sprite.RenderUpdates()
 
     # Set up board
-    for row in range(8):
-        for col in range(8):
-            top = tile_width*row
-            left = tile_width*col
-            if not(row % 2) and (col % 2):
+    for row, col in [(r, c) for r in range(8) for c in range(8)]:
+            top, left = tile_width*row, tile_width*col
+            odd_row, odd_col = row % 2, col % 2
+            even_row, even_col = not odd_row, not odd_col
+            if (even_row and odd_col) or (odd_row and even_col):
                 brown_spaces.add(BoardSpace((left,top),"brown",row,col))
-            elif not(row % 2) and not(col % 2):
-                tan_spaces.add(BoardSpace((left,top),"tan",row,col))
-            elif (row % 2) and not(col % 2):
-                brown_spaces.add(BoardSpace((left,top),"brown",row,col))
-            elif (row % 2) and (col % 2):
+            elif (even_row and even_col) or (odd_row and odd_col):
                 tan_spaces.add(BoardSpace((left,top),"tan",row,col))
 
     # Set up checker pieces
-    for row in range(8):
-        for col in range(8):
+    for row, col in [(r, c) for r in range(8) for c in range(8)]:
 
             # Toggle player based on piece starting position
             if row < 3:
@@ -140,6 +136,7 @@ def main():
     currentpiece_position = (0,0)
 
     while True:
+
         pieces.clear(screen,background)
         brown_spaces.clear(screen,background)
         tan_spaces.clear(screen,background)
@@ -259,12 +256,12 @@ def main():
                 black_pieces = black_pieces + 1
         if red_pieces > 0 or black_pieces == 0:
             font = pygame.font.Font(None, 36)
-            text = font.render("", 1, (255, 255, 255))
+            text = font.render("", 1, white)
             if red_pieces == 0:
-                text = font.render("The black player won!", 1, (255, 255, 255))
+                text = font.render("The black player won!", 1, white)
                 print "The black player won!"
             elif black_pieces == 0:
-                text = font.render("The red player won!", 1, (255, 255, 255))
+                text = font.render("The red player won!", 1, white)
                 print "The red player won!"
             textpos = text.get_rect()
             textpos.centerx = background.get_rect().centerx
