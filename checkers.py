@@ -134,8 +134,7 @@ def main():
 
             # If in player starting space, create and add appropriate piece
             if row < 3 or row > 4:
-                top = tile_width*row
-                left = tile_width*col
+                top, left = tile_width*row, tile_width*col
                 if not(row % 2) and (col % 2):
                     pieces.add(CheckerPiece(player,(left+(tile_width/2),top+(tile_width/2))))
                 elif (row % 2) and not(col % 2):
