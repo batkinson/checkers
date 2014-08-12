@@ -138,6 +138,8 @@ def main():
                     pieces.add(CheckerPiece(player, (left+(tile_width/2), top+(tile_width/2))))
                 elif (row % 2) and not(col % 2):
                     pieces.add(CheckerPiece(player, (left+(tile_width/2), top+(tile_width/2))))
+                else:
+                    print "waste...tsk tsk"
 
     # Blit everything to the screen
     screen.blit(background, origin)
