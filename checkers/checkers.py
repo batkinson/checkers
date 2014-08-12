@@ -11,7 +11,7 @@ from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 
 brown = (143, 96, 40)
 white = (255, 255, 255)
-    
+
 
 global tile_width
 global board_dim
@@ -197,10 +197,10 @@ def main():
                 # if piece is kinged, piece goes to (row-1 and (col+1 or col-1))
                 #                OR (piece on (col-1, row-1) and piece goes to (col-2, row-2) -- capture piece
                 #                OR (piece on (col+1, row-1) and piece goes to (col+2, row-2) -- capture piece
-                #                OR piece goes to (row+1 and (col+1 or col-1)) 
+                #                OR piece goes to (row+1 and (col+1 or col-1))
                 #                OR (piece on (col-1, row+1) and piece goes to (col-2, row+2) -- capture piece
                 #                OR (piece on (col+1, row+1) and piece goes to (col+2, row+2) -- capture piece
-                # else if piece is black, piece goes to (row+1 and (col+1 or col-1)) 
+                # else if piece is black, piece goes to (row+1 and (col+1 or col-1))
                 #                OR (piece on (col-1, row+1) and piece goes to (col-2, row+2) -- capture piece
                 #                OR (piece on (col+1, row+1) and piece goes to (col+2, row+2) -- capture piece
                 # else if piece is red, piece goes to (row-1 and (col+1 or col-1))
@@ -316,5 +316,5 @@ def main():
 
         pygame.display.flip()
 
-if __name__ == '__main__': 
+if __name__ == '__main__':
     main()
