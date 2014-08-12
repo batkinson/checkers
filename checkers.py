@@ -174,7 +174,8 @@ def main():
                 #                OR (piece on (col-1,row-1) and piece goes to (col-2,row-2) -- capture piece
                 #                OR (piece on (col+1,row-1) and piece goes to (col+2,row-2) -- capture piece
 
-                if (len    (space_selected) > 0) and (len(piece_selected) > 0):            
+                if (len(space_selected) > 0) and (len(piece_selected) > 0):
+                    # Kings can move forward and backwards
                     if (piece_selected.sprite.type == "king"):
                         if space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width,currentpiece_position[1]-tile_width) \
                             or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width,currentpiece_position[1]-tile_width):
@@ -196,6 +197,7 @@ def main():
                             capture_piece = 1
                         else:
                             valid_move = 0
+                    # Normal pieces (not kings) can only move towards opposing side
                     elif (piece_selected.sprite.player == "black") and (len(space_selected) > 0):
                         if space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width,currentpiece_position[1]+tile_width) \
                             or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width,currentpiece_position[1]+tile_width):
