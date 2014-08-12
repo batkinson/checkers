@@ -13,6 +13,7 @@ brown = (143,96,40)
 white = (255,255,255)
     
 tile_width = 75
+board_dim = 8
 
 
 def load_png(name, colorkey=None):
@@ -100,7 +101,7 @@ def main():
     pieces = pygame.sprite.RenderUpdates()
 
     # Set up board
-    for row, col in [(r, c) for r in range(8) for c in range(8)]:
+    for row, col in [(r, c) for r in range(board_dim) for c in range(board_dim)]:
             top, left = tile_width*row, tile_width*col
             odd_row, odd_col = row % 2, col % 2
             even_row, even_col = not odd_row, not odd_col
@@ -110,7 +111,7 @@ def main():
                 tan_spaces.add(BoardSpace((left,top),"tan",row,col))
 
     # Set up checker pieces
-    for row, col in [(r, c) for r in range(8) for c in range(8)]:
+    for row, col in [(r, c) for r in range(board_dim) for c in range(board_dim)]:
 
             # Toggle player based on piece starting position
             if row < 3:
