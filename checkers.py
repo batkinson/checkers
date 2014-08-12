@@ -149,7 +149,7 @@ def main():
                 return
             if event.type == MOUSEBUTTONDOWN:     # select a piece
                 piece_selected.add(piece for piece in pieces if piece.rect.collidepoint(event.pos))
-                pygame.event.set_grab(1)
+                pygame.event.set_grab(True)
                 if len(piece_selected) > 0:
                     currentpiece_position = (piece_selected.sprite.rect.centerx,piece_selected.sprite.rect.centery)
             if event.type == MOUSEBUTTONUP:     # let go of a piece
@@ -238,7 +238,7 @@ def main():
                     pieces.remove(piece for piece in pieces if piece.rect.collidepoint(capture_piece_x,capture_piece_y))
 
                 # clean up for the next selected piece
-                pygame.event.set_grab(0)
+                pygame.event.set_grab(False)
                 piece_selected.empty()
                 space_selected.empty()
 
