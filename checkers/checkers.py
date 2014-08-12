@@ -7,6 +7,7 @@
 
 import pygame, os
 from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
+from internals import Checkers, RED, BLACK
 
 
 brown = (143, 96, 40)
@@ -23,6 +24,8 @@ board_dim = 8
 screen_res = (600, 600)
 window_title = 'Checkers'
 origin = (0,0)
+
+game = Checkers()
 
 def load_png(name, colorkey=None):
     """ Load image and return image object"""
@@ -49,9 +52,9 @@ class CheckerPiece(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         screen = pygame.display.get_surface()
         self.area = screen.get_rect()
-        if player == "red":
+        if player == RED:
             self.image, self.rect = load_png('red-piece.png', brown)
-        elif player == "black":
+        elif player == BLACK:
             self.image, self.rect = load_png('black-piece.png', brown)
         else:
             print 'Invalid player name: ', player
@@ -63,9 +66,9 @@ class CheckerPiece(pygame.sprite.Sprite):
 
     def king(self):
         self.type = "king"
-        if self.player == "red":
+        if self.player == RED:
             self.image, self.rect = load_png('red-piece-king.png', brown)
-        elif self.player == "black":
+        elif self.player == BLACK:
             self.image, self.rect = load_png('black-piece-king.png', brown)
 
     def update(self, position):
@@ -134,25 +137,11 @@ def main():
     # board setup
     board_setup(brown_spaces = brown_spaces, tan_spaces = tan_spaces)
 
-    # Intialize playing pieces (also sprites)
-    # If we could get the red/black row/col tuples no need for dim*dim ops
-    for row, col in [(r, c) for r in range(board_dim) for c in range(board_dim)]:
-
-            # Toggle player based on piece starting position
-            if row < 3:
-                player = "black"
-            elif row > 4:
-                player = "red"
-
-            # If in player starting space, create and add appropriate piece
-            if row < 3 or row > 4:
-                top, left = tile_width*row, tile_width*col
-                if not(row % 2) and (col % 2):
-                    pieces.add(CheckerPiece(player, (left+(tile_width/2), top+(tile_width/2))))
-                elif (row % 2) and not(col % 2):
-                    pieces.add(CheckerPiece(player, (left+(tile_width/2), top+(tile_width/2))))
-                else:
-                    print "waste...tsk tsk"
+    # Intialize playing pieces
+    for player, col, row in game:
+        top, left = tile_width*row, tile_width*col
+        new_piece = CheckerPiece(player, (left+(tile_width/2), top+(tile_width/2)))
+        pieces.add(new_piece)
 
     # Blit everything to the screen
     screen.blit(background, origin)
@@ -232,7 +221,7 @@ def main():
                         else:
                             valid_move = 0 # This is why no-ops above would work
                     # Normal pieces (not kings) can only move towards opposing side
-                    elif (piece_selected.sprite.player == "black") and (len(space_selected) > 0):
+                    elif (piece_selected.sprite.player == BLACK) and (len(space_selected) > 0):
                         if space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]+tile_width) \
                             or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]+tile_width):
                             valid_move = valid_move and 1
@@ -244,7 +233,7 @@ def main():
                             capture_piece = 1
                         else:
                             valid_move = 0
-                    elif (piece_selected.sprite.player == "red") and (len(space_selected) > 0):
+                    elif (piece_selected.sprite.player == RED) and (len(space_selected) > 0):
                         if space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]-tile_width) \
                             or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]-tile_width):
                             valid_move = valid_move and 1
@@ -261,8 +250,8 @@ def main():
 
                 if valid_move:
                     # king the piece if applicable
-                    if (piece_selected.sprite.player == "red" and space_selected.sprite.row == 0) \
-                        or (piece_selected.sprite.player == "black" and space_selected.sprite.row == 7):
+                    if (piece_selected.sprite.player == RED and space_selected.sprite.row == 0) \
+                        or (piece_selected.sprite.player == BLACK and space_selected.sprite.row == 7):
                         piece_selected.sprite.king()
                     piece_selected.update((space_selected.sprite.rect.centerx, space_selected.sprite.rect.centery))
                 else:
@@ -296,9 +285,9 @@ def main():
         red_pieces = 0
         black_pieces = 0
         for piece in pieces:
-            if piece.player == "red":
+            if piece.player == RED:
                 red_pieces = red_pieces + 1
-            elif piece.player == "black":
+            elif piece.player == BLACK:
                 black_pieces = black_pieces + 1
         if red_pieces > 0 or black_pieces == 0:
             font = pygame.font.Font(None, 36)
