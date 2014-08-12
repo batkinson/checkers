@@ -16,6 +16,7 @@ tile_width = 75
 board_dim = 8
 screen_res = (600, 600)
 window_title = 'Checkers'
+origin = (0,0)
 
 
 def load_png(name, colorkey=None):
@@ -139,13 +140,13 @@ def main():
                     pieces.add(CheckerPiece(player, (left+(tile_width/2), top+(tile_width/2))))
 
     # Blit everything to the screen
-    screen.blit(background, (0, 0))
+    screen.blit(background, origin)
     pygame.display.flip()
 
     # Event loop
     piece_selected = pygame.sprite.GroupSingle()
     space_selected = pygame.sprite.GroupSingle()
-    currentpiece_position = (0, 0)
+    currentpiece_position = origin
 
     while True:
 
