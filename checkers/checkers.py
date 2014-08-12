@@ -25,7 +25,7 @@ screen_res = (600, 600)
 window_title = 'Checkers'
 origin = (0,0)
 
-game = Checkers()
+game = Checkers(board_dim)
 
 def load_png(name, colorkey=None):
     """ Load image and return image object"""
