@@ -15,6 +15,7 @@ white = (255,255,255)
 tile_width = 75
 board_dim = 8
 screen_res = (600, 600)
+window_title = 'Checkers'
 
 
 def load_png(name, colorkey=None):
@@ -89,7 +90,7 @@ def main():
     # Initialise screen
     pygame.init()
     screen = pygame.display.set_mode(screen_res)
-    pygame.display.set_caption('Checkers')
+    pygame.display.set_caption(window_title)
 
     # Fill background
     background = pygame.Surface(screen.get_size())
