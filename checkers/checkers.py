@@ -13,12 +13,16 @@ brown = (143, 96, 40)
 white = (255, 255, 255)
     
 
+global tile_width
+global board_dim
+global screen_res
+global window_title
+
 tile_width = 75
 board_dim = 8
 screen_res = (600, 600)
 window_title = 'Checkers'
 origin = (0,0)
-
 
 def load_png(name, colorkey=None):
     """ Load image and return image object"""
@@ -91,7 +95,6 @@ class BoardSpace(pygame.sprite.Sprite):
 
 
 def board_setup(**kwargs):
-    board_dim = kwargs.get('board_dim')
     brown_spaces = kwargs.get('brown_spaces')
     tan_spaces = kwargs.get('tan_spaces')
 
@@ -107,12 +110,16 @@ def board_setup(**kwargs):
             elif (even_row and even_col) or (odd_row and odd_col):
                 tan_spaces.add(BoardSpace((left, top), "tan", row, col))
 
-
-def main():
-    # Initialise screen
+def screen_init(**kwargs):
+    """ Initialise screen """
     pygame.init()
     screen = pygame.display.set_mode(screen_res)
     pygame.display.set_caption(window_title)
+    return screen
+
+
+def main():
+    screen = screen_init()
 
     # Fill background
     background = pygame.Surface(screen.get_size())
@@ -125,8 +132,7 @@ def main():
     pieces = pygame.sprite.RenderUpdates()
 
     # board setup
-    board_setup(brown_spaces = brown_spaces, tan_spaces = tan_spaces, board_dim = board_dim)
-
+    board_setup(brown_spaces = brown_spaces, tan_spaces = tan_spaces)
 
     # Intialize playing pieces (also sprites)
     # If we could get the red/black row/col tuples no need for dim*dim ops
