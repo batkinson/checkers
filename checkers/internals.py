@@ -32,6 +32,22 @@ class Checkers:
             for piece in self.pieces[player]:
                 yield (player, piece[0], piece[1])
 
+    def __getitem__(self, xy):
+        """Returns the piece occupying the position specified as a tuple (x,y)"""
+        for player in [BLACK, RED]:
+            x,y = xy
+            if (x, y) in self.pieces[player]:
+                return player
+
+    def __setitem__(self, xy, player):
+        """Sets the piece occupying the position specified by the tuple (x,y)
+        to the specified player"""
+        x,y = xy
+        existing = self[xy]
+        if existing != player:
+            self.pieces[existing].remove((x, y))
+        self.pieces[player].append((x, y))
+
     def winner(self):
         """Returns the player that has won the game or None if no winner."""
         num_black, num_red = len(self.pieces[BLACK]), len(self.pieces[RED])
@@ -40,3 +56,16 @@ class Checkers:
         elif (num_red and not num_black):
             return RED
 
+    def __repr__(self):
+        """Returns the board representation."""
+        result = ""
+        for y in range(self.dim):
+            for x in range(self.dim):
+                if self[(x, y)] == BLACK:
+                    result += 'B'
+                elif self[(x,y)] == RED:
+                    result += 'R'
+                else:
+                    result += '*'
+            result += '\n'
+        return result
