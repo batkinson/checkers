@@ -14,6 +14,7 @@ white = (255,255,255)
     
 tile_width = 75
 board_dim = 8
+screen_res = (600, 600)
 
 
 def load_png(name, colorkey=None):
@@ -87,13 +88,13 @@ class BoardSpace(pygame.sprite.Sprite):
 def main():
     # Initialise screen
     pygame.init()
-    screen = pygame.display.set_mode((600, 600))
+    screen = pygame.display.set_mode(screen_res)
     pygame.display.set_caption('Checkers')
 
     # Fill background
     background = pygame.Surface(screen.get_size())
     background = background.convert()
-    background.fill((255,255,255))
+    background.fill(white)
 
     # Initialize Game Groups
     brown_spaces = pygame.sprite.RenderUpdates()
