@@ -6,9 +6,11 @@
 # Released under the GNU General Public License
 
 import pygame, os
+import logging as log
 from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 from internals import Checkers, RED, BLACK
 
+log.basicConfig(level=log.INFO)
 
 brown = (143, 96, 40)
 white = (255, 255, 255)
@@ -25,11 +27,14 @@ screen_res = (600, 600)
 window_title = 'Checkers'
 origin = (0,0)
 
+log.debug('starting game')
+
 game = Checkers(board_dim)
 
 def load_png(name, colorkey=None):
     """ Load image and return image object"""
     fullname = os.path.join('../images', name)
+    log.debug('loading png: %s', fullname)
     try:
         image = pygame.image.load(fullname)
         if colorkey:
@@ -39,7 +44,7 @@ def load_png(name, colorkey=None):
         else:
             image = image.convert_alpha()
     except pygame.error, message:
-            print 'Cannot load image: ', fullname
+            log.exception('failed to load image %s: %s', fullname, message)
             raise SystemExit, message
     return image, image.get_rect()
 
@@ -122,6 +127,8 @@ def screen_init(**kwargs):
 
 
 def main():
+
+    log.debug('initializing screen')
     screen = screen_init()
 
     # Fill background
@@ -135,9 +142,11 @@ def main():
     pieces = pygame.sprite.RenderUpdates()
 
     # board setup
+    log.debug('building initial game board')
     board_setup(brown_spaces = brown_spaces, tan_spaces = tan_spaces)
 
     # Intialize playing pieces
+    log.debug('initializing game pieces')
     for player, col, row in game:
         top, left = tile_width*row, tile_width*col
         new_piece = CheckerPiece(player, (left+(tile_width/2), top+(tile_width/2)))
@@ -162,9 +171,13 @@ def main():
         for event in pygame.event.get():
 
             if event.type == QUIT:
+                log.debug('quitting')
                 return
 
             if event.type == MOUSEBUTTONDOWN:     # select a piece
+
+                log.debug('mouse pressed')
+
                 # select the piece by seeing if the piece collides with cursor
                 piece_selected.add(piece for piece in pieces if piece.rect.collidepoint(event.pos))
                 # Capture piece's original position (at center) to determine move on drop
@@ -172,10 +185,15 @@ def main():
                     # Assumed: starting a move
                     pygame.event.set_grab(True)
                     currentpiece_position = (piece_selected.sprite.rect.centerx, piece_selected.sprite.rect.centery)
+                    log.debug('grabbing input, picked up piece at %s', currentpiece_position)
 
             if event.type == MOUSEBUTTONUP:     # let go of a piece
 
+                log.debug('mouse released')
+
                 if pygame.event.get_grab():
+
+                    log.debug('dropped a piece')
 
                     # center the piece on the valid space; if it is not touching a space, return it to its original position
                     space_selected.add(space for space in brown_spaces if space.rect.collidepoint(event.pos))
@@ -256,25 +274,32 @@ def main():
                         # king the piece if applicable
                         if (piece_selected.sprite.player == RED and space_selected.sprite.row == 0) \
                             or (piece_selected.sprite.player == BLACK and space_selected.sprite.row == 7):
+                            log.debug('kinged piece')
                             piece_selected.sprite.king()
-                        piece_selected.update((space_selected.sprite.rect.centerx, space_selected.sprite.rect.centery))
+                        new_pos = (space_selected.sprite.rect.centerx, space_selected.sprite.rect.centery)
+                        piece_selected.update(new_pos)
+                        log.debug('valid move: dropped piece at new position %s', new_pos)
                     else:
                         piece_selected.update(currentpiece_position)
+                        log.debug('invalid move: dropped piece at original position %s', currentpiece_position)
 
                     if capture_piece:
-                        # It seems this information should is recomputed from above
+                        # It seems this information is recomputed from above
                         capture_piece_x = (space_selected.sprite.rect.centerx + currentpiece_position[0])/2
                         capture_piece_y = (space_selected.sprite.rect.centery + currentpiece_position[1])/2
+                        log.debug('captured piece at %s', (capture_piece_x, capture_piece_y))
                         pieces.remove(piece for piece in pieces if piece.rect.collidepoint(capture_piece_x, capture_piece_y))
 
                     # clean up for the next selected piece
                     pygame.event.set_grab(False)
+                    log.debug('releasing input')
                     piece_selected.empty()
                     space_selected.empty()
 
             if pygame.event.get_grab():          # drag selected piece around
                 # Until botton is let go, move the piece with the mouse position
                 piece_selected.update(pygame.mouse.get_pos())
+                log.debug('updated piece to %s', pygame.mouse.get_pos())
 
         brown_spaces.draw(screen)
         tan_spaces.draw(screen)
