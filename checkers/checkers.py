@@ -16,7 +16,6 @@ log.basicConfig(level=log.INFO)
 brown = (143, 96, 40)
 white = (255, 255, 255)
 
-
 global tile_width
 global board_dim
 global screen_res
@@ -49,7 +48,6 @@ def load_png(name, colorkey=None):
             raise SystemExit, message
     return image, image.get_rect()
 
-
 class CheckerPiece(pygame.sprite.Sprite):
 
     """A sprite for a single piece."""
@@ -81,7 +79,6 @@ class CheckerPiece(pygame.sprite.Sprite):
         self.rect.centerx = position[0]
         self.rect.centery = position[1]
 
-
 class BoardSpace(pygame.sprite.Sprite):
 
     """A sprite abstraction for game board spaces."""
@@ -102,10 +99,8 @@ class BoardSpace(pygame.sprite.Sprite):
             raise SystemExit
         self.rect.topleft = initial_position
 
-
 def board_setup(**kwargs):
     brown_spaces = kwargs.get('brown_spaces')
-    tan_spaces = kwargs.get('tan_spaces')
 
     """ initialize board state """
     # Initialize board spaces (they are sprites)
@@ -116,8 +111,6 @@ def board_setup(**kwargs):
             even_row, even_col = not odd_row, not odd_col
             if (even_row and odd_col) or (odd_row and even_col):
                 brown_spaces.add(BoardSpace((left, top), "brown", row, col))
-            elif (even_row and even_col) or (odd_row and odd_col):
-                tan_spaces.add(BoardSpace((left, top), "tan", row, col))
 
 def screen_init(**kwargs):
     """ Initialise screen """
@@ -138,8 +131,7 @@ def get_background(screen):
         else:
             result.blit(t_img, (tile_x, tile_y))
     return result.convert()
-    
-    
+
 def main():
 
     log.debug('initializing screen')
@@ -148,17 +140,16 @@ def main():
     # Fill background
     background = get_background(screen)
     background_rect = background.get_rect()
-    
+
     font = pygame.font.Font(None, 36)
 
     # Initialize Game Groups
     brown_spaces = pygame.sprite.RenderUpdates()
-    tan_spaces = pygame.sprite.RenderUpdates()
     pieces = pygame.sprite.RenderUpdates()
 
     # board setup
     log.debug('building initial game board')
-    board_setup(brown_spaces = brown_spaces, tan_spaces = tan_spaces)
+    board_setup(brown_spaces = brown_spaces)
 
     # Intialize playing pieces
     log.debug('initializing game pieces')
@@ -176,13 +167,13 @@ def main():
     currentpiece_position = origin
 
     fps_clock = Clock()
-    
+
     def get_fps_text():
         surface = font.render("%4.1f F/S" % fps_clock.get_fps(), 1, white)
         rect = surface.get_rect()
         rect.right, rect.bottom = background_rect.right, background_rect.bottom
         return surface, rect
-    
+
     fps_text, fps_rect = get_fps_text()
 
     # Event loop
