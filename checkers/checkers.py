@@ -184,6 +184,7 @@ def main():
                 if len(piece_selected) > 0:
                     # Assumed: starting a move
                     pygame.event.set_grab(True)
+                    pieces.remove(piece_selected)
                     currentpiece_position = (piece_selected.sprite.rect.centerx, piece_selected.sprite.rect.centery)
                     log.debug('grabbing input, picked up piece at %s', currentpiece_position)
 
@@ -202,7 +203,7 @@ def main():
                     valid_move = (len(space_selected) > 0)
                     # A move is valid if the drop is on a brown space and *only*
                     # the dragged piece is colliding with the destination space
-                    valid_move = valid_move and len(pieces_there) == 1
+                    valid_move = valid_move and len(pieces_there) == 0
                     capture_piece = 0
 
                     # if piece is kinged, piece goes to (row-1 and (col+1 or col-1))
@@ -218,7 +219,7 @@ def main():
                     #                OR (piece on (col-1, row-1) and piece goes to (col-2, row-2) -- capture piece
                     #                OR (piece on (col+1, row-1) and piece goes to (col+2, row-2) -- capture piece
 
-                    if len(space_selected) and len(piece_selected):
+                    if space_selected and piece_selected:
 
                         if (piece_selected.sprite.type == "king"):
                             # Kings can move forward and backwards
@@ -283,6 +284,8 @@ def main():
                         piece_selected.update(currentpiece_position)
                         log.debug('invalid move: dropped piece at original position %s', currentpiece_position)
 
+                    pieces.add(piece_selected)
+
                     if capture_piece:
                         # It seems this information is recomputed from above
                         capture_piece_x = (space_selected.sprite.rect.centerx + currentpiece_position[0])/2
@@ -304,6 +307,7 @@ def main():
         brown_spaces.draw(screen)
         tan_spaces.draw(screen)
         pieces.draw(screen)
+        piece_selected.draw(screen)
 
         # determine if someone has won yet
         # It seems this is two ops:
