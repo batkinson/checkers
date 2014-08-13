@@ -8,6 +8,7 @@
 import pygame, os
 import logging as log
 from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
+from pygame.time import Clock
 from internals import Checkers, RED, BLACK
 
 log.basicConfig(level=log.INFO)
@@ -159,6 +160,8 @@ def main():
     piece_selected = pygame.sprite.GroupSingle()
     space_selected = pygame.sprite.GroupSingle()
     currentpiece_position = origin
+
+    fps_clock = Clock()
 
     # Event loop
     while True:
@@ -334,6 +337,15 @@ def main():
             textpos.centerx = background.get_rect().centerx
             textpos.top = 100
             screen.blit(text, textpos)
+
+        fps_clock.tick()
+
+        # Render the framerate
+        fps_text = font.render("%4.1f F/S" % fps_clock.get_fps(), 1, white)
+        fps_pos = fps_text.get_rect()
+        background_rect = background.get_rect()
+        fps_pos.right, fps_pos.bottom = background_rect.right, background_rect.bottom
+        screen.blit(fps_text, fps_pos)
 
         pygame.display.flip()
 
