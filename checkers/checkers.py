@@ -165,114 +165,117 @@ def main():
                 return
 
             if event.type == MOUSEBUTTONDOWN:     # select a piece
-
                 # select the piece by seeing if the piece collides with cursor
                 piece_selected.add(piece for piece in pieces if piece.rect.collidepoint(event.pos))
-                pygame.event.set_grab(True)
+                # Capture piece's original position (at center) to determine move on drop
                 if len(piece_selected) > 0:
+                    # Assumed: starting a move
+                    pygame.event.set_grab(True)
                     currentpiece_position = (piece_selected.sprite.rect.centerx, piece_selected.sprite.rect.centery)
+
             if event.type == MOUSEBUTTONUP:     # let go of a piece
 
-                # center the piece on the valid space; if it is not touching a space, return it to its original position
-                space_selected.add(space for space in brown_spaces if space.rect.collidepoint(event.pos))
-                pieces_there = [piece for piece in pieces if piece.rect.collidepoint(event.pos)]
+                if pygame.event.get_grab():
 
-                valid_move = (len(space_selected) > 0)
-                # A move is valid if the drop is on a brown space and *only*
-                # the dragged piece is colliding with the destination space
-                valid_move = valid_move and len(pieces_there) == 1
-                capture_piece = 0
+                    # center the piece on the valid space; if it is not touching a space, return it to its original position
+                    space_selected.add(space for space in brown_spaces if space.rect.collidepoint(event.pos))
+                    pieces_there = [piece for piece in pieces if piece.rect.collidepoint(event.pos)]
 
-                # if piece is kinged, piece goes to (row-1 and (col+1 or col-1))
-                #                OR (piece on (col-1, row-1) and piece goes to (col-2, row-2) -- capture piece
-                #                OR (piece on (col+1, row-1) and piece goes to (col+2, row-2) -- capture piece
-                #                OR piece goes to (row+1 and (col+1 or col-1))
-                #                OR (piece on (col-1, row+1) and piece goes to (col-2, row+2) -- capture piece
-                #                OR (piece on (col+1, row+1) and piece goes to (col+2, row+2) -- capture piece
-                # else if piece is black, piece goes to (row+1 and (col+1 or col-1))
-                #                OR (piece on (col-1, row+1) and piece goes to (col-2, row+2) -- capture piece
-                #                OR (piece on (col+1, row+1) and piece goes to (col+2, row+2) -- capture piece
-                # else if piece is red, piece goes to (row-1 and (col+1 or col-1))
-                #                OR (piece on (col-1, row-1) and piece goes to (col-2, row-2) -- capture piece
-                #                OR (piece on (col+1, row-1) and piece goes to (col+2, row-2) -- capture piece
+                    valid_move = (len(space_selected) > 0)
+                    # A move is valid if the drop is on a brown space and *only*
+                    # the dragged piece is colliding with the destination space
+                    valid_move = valid_move and len(pieces_there) == 1
+                    capture_piece = 0
 
-                if len(space_selected) and len(piece_selected):
+                    # if piece is kinged, piece goes to (row-1 and (col+1 or col-1))
+                    #                OR (piece on (col-1, row-1) and piece goes to (col-2, row-2) -- capture piece
+                    #                OR (piece on (col+1, row-1) and piece goes to (col+2, row-2) -- capture piece
+                    #                OR piece goes to (row+1 and (col+1 or col-1))
+                    #                OR (piece on (col-1, row+1) and piece goes to (col-2, row+2) -- capture piece
+                    #                OR (piece on (col+1, row+1) and piece goes to (col+2, row+2) -- capture piece
+                    # else if piece is black, piece goes to (row+1 and (col+1 or col-1))
+                    #                OR (piece on (col-1, row+1) and piece goes to (col-2, row+2) -- capture piece
+                    #                OR (piece on (col+1, row+1) and piece goes to (col+2, row+2) -- capture piece
+                    # else if piece is red, piece goes to (row-1 and (col+1 or col-1))
+                    #                OR (piece on (col-1, row-1) and piece goes to (col-2, row-2) -- capture piece
+                    #                OR (piece on (col+1, row-1) and piece goes to (col+2, row-2) -- capture piece
 
-                    if (piece_selected.sprite.type == "king"):
-                        # Kings can move forward and backwards
-                        if space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]-tile_width) \
-                            or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]-tile_width):
-                            valid_move = valid_move and 1
-                        elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]-tile_width)]) > 0\
-                            and space_selected.sprite.rect.collidepoint(currentpiece_position[0]-2*tile_width, currentpiece_position[1]-2*tile_width):
-                            capture_piece = 1
-                        elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]-tile_width)]) > 0\
-                                and space_selected.sprite.rect.collidepoint(currentpiece_position[0]+2*tile_width, currentpiece_position[1]-2*tile_width):
-                            capture_piece = 1
-                        elif space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]+tile_width) \
-                            or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]+tile_width):
-                            valid_move = valid_move and 1 # No-op?
-                        elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]+tile_width)]) > 0\
-                                and space_selected.sprite.rect.collidepoint(currentpiece_position[0]-2*tile_width, currentpiece_position[1]+2*tile_width):
-                            capture_piece = 1
-                        elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]+tile_width)]) > 0\
-                                and space_selected.sprite.rect.collidepoint(currentpiece_position[0]+2*tile_width, currentpiece_position[1]+2*tile_width):
-                            capture_piece = 1
-                        else:
-                            valid_move = 0 # This is why no-ops above would work
-                    # Normal pieces (not kings) can only move towards opposing side
-                    elif (piece_selected.sprite.player == BLACK) and (len(space_selected) > 0):
-                        if space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]+tile_width) \
-                            or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]+tile_width):
-                            valid_move = valid_move and 1
-                        elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]+tile_width)]) > 0\
-                                and space_selected.sprite.rect.collidepoint(currentpiece_position[0]-2*tile_width, currentpiece_position[1]+2*tile_width):
-                            capture_piece = 1
-                        elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]+tile_width)]) > 0\
-                                and space_selected.sprite.rect.collidepoint(currentpiece_position[0]+2*tile_width, currentpiece_position[1]+2*tile_width):
-                            capture_piece = 1
-                        else:
-                            valid_move = 0
-                    elif (piece_selected.sprite.player == RED) and (len(space_selected) > 0):
-                        if space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]-tile_width) \
-                            or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]-tile_width):
-                            valid_move = valid_move and 1
-                        elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]-tile_width)]) > 0\
+                    if len(space_selected) and len(piece_selected):
+
+                        if (piece_selected.sprite.type == "king"):
+                            # Kings can move forward and backwards
+                            if space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]-tile_width) \
+                                or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]-tile_width):
+                                valid_move = valid_move and 1
+                            elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]-tile_width)]) > 0\
                                 and space_selected.sprite.rect.collidepoint(currentpiece_position[0]-2*tile_width, currentpiece_position[1]-2*tile_width):
-                            capture_piece = 1
-                        elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]-tile_width)]) > 0\
-                                and space_selected.sprite.rect.collidepoint(currentpiece_position[0]+2*tile_width, currentpiece_position[1]-2*tile_width):
-                            capture_piece = 1
+                                capture_piece = 1
+                            elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]-tile_width)]) > 0\
+                                    and space_selected.sprite.rect.collidepoint(currentpiece_position[0]+2*tile_width, currentpiece_position[1]-2*tile_width):
+                                capture_piece = 1
+                            elif space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]+tile_width) \
+                                or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]+tile_width):
+                                valid_move = valid_move and 1 # No-op?
+                            elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]+tile_width)]) > 0\
+                                    and space_selected.sprite.rect.collidepoint(currentpiece_position[0]-2*tile_width, currentpiece_position[1]+2*tile_width):
+                                capture_piece = 1
+                            elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]+tile_width)]) > 0\
+                                    and space_selected.sprite.rect.collidepoint(currentpiece_position[0]+2*tile_width, currentpiece_position[1]+2*tile_width):
+                                capture_piece = 1
+                            else:
+                                valid_move = 0 # This is why no-ops above would work
+                        # Normal pieces (not kings) can only move towards opposing side
+                        elif (piece_selected.sprite.player == BLACK) and (len(space_selected) > 0):
+                            if space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]+tile_width) \
+                                or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]+tile_width):
+                                valid_move = valid_move and 1
+                            elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]+tile_width)]) > 0\
+                                    and space_selected.sprite.rect.collidepoint(currentpiece_position[0]-2*tile_width, currentpiece_position[1]+2*tile_width):
+                                capture_piece = 1
+                            elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]+tile_width)]) > 0\
+                                    and space_selected.sprite.rect.collidepoint(currentpiece_position[0]+2*tile_width, currentpiece_position[1]+2*tile_width):
+                                capture_piece = 1
+                            else:
+                                valid_move = 0
+                        elif (piece_selected.sprite.player == RED) and (len(space_selected) > 0):
+                            if space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]-tile_width) \
+                                or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]-tile_width):
+                                valid_move = valid_move and 1
+                            elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]-tile_width)]) > 0\
+                                    and space_selected.sprite.rect.collidepoint(currentpiece_position[0]-2*tile_width, currentpiece_position[1]-2*tile_width):
+                                capture_piece = 1
+                            elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]-tile_width)]) > 0\
+                                    and space_selected.sprite.rect.collidepoint(currentpiece_position[0]+2*tile_width, currentpiece_position[1]-2*tile_width):
+                                capture_piece = 1
+                            else:
+                                valid_move = 0
                         else:
                             valid_move = 0
+
+                    if valid_move:
+                        # king the piece if applicable
+                        if (piece_selected.sprite.player == RED and space_selected.sprite.row == 0) \
+                            or (piece_selected.sprite.player == BLACK and space_selected.sprite.row == 7):
+                            piece_selected.sprite.king()
+                        piece_selected.update((space_selected.sprite.rect.centerx, space_selected.sprite.rect.centery))
                     else:
-                        valid_move = 0
+                        piece_selected.update(currentpiece_position)
 
-                if valid_move:
-                    # king the piece if applicable
-                    if (piece_selected.sprite.player == RED and space_selected.sprite.row == 0) \
-                        or (piece_selected.sprite.player == BLACK and space_selected.sprite.row == 7):
-                        piece_selected.sprite.king()
-                    piece_selected.update((space_selected.sprite.rect.centerx, space_selected.sprite.rect.centery))
-                else:
-                    piece_selected.update(currentpiece_position)
+                    if capture_piece:
+                        # It seems this information should is recomputed from above
+                        capture_piece_x = (space_selected.sprite.rect.centerx + currentpiece_position[0])/2
+                        capture_piece_y = (space_selected.sprite.rect.centery + currentpiece_position[1])/2
+                        pieces.remove(piece for piece in pieces if piece.rect.collidepoint(capture_piece_x, capture_piece_y))
 
-                if capture_piece:
-                    # It seems this information should is recomputed from above
-                    capture_piece_x = (space_selected.sprite.rect.centerx + currentpiece_position[0])/2
-                    capture_piece_y = (space_selected.sprite.rect.centery + currentpiece_position[1])/2
-                    pieces.remove(piece for piece in pieces if piece.rect.collidepoint(capture_piece_x, capture_piece_y))
-
-                # clean up for the next selected piece
-                pygame.event.set_grab(False)
-                piece_selected.empty()
-                space_selected.empty()
+                    # clean up for the next selected piece
+                    pygame.event.set_grab(False)
+                    piece_selected.empty()
+                    space_selected.empty()
 
             if pygame.event.get_grab():          # drag selected piece around
                 # Until botton is let go, move the piece with the mouse position
                 piece_selected.update(pygame.mouse.get_pos())
 
-        # The other side of the clear/draw pair (need to redraw if nothing moves)?
         brown_spaces.draw(screen)
         tan_spaces.draw(screen)
         pieces.draw(screen)
