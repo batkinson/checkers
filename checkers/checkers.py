@@ -126,16 +126,30 @@ def screen_init(**kwargs):
     pygame.display.set_caption(window_title)
     return screen
 
-
+def get_background(screen):
+    result = pygame.Surface(screen.get_size()).convert()
+    (b_img, _) = load_png('brown-space.png')
+    (t_img, _) = load_png('tan-space.png')
+    usable = set(game._usable_positions())
+    for x,y in [(x,y) for y in xrange(0,board_dim) for x in xrange(0,board_dim)]:
+        tile_x, tile_y = x * tile_width, y * tile_width
+        if (x,y) in usable:
+            result.blit(b_img, (tile_x, tile_y))
+        else:
+            result.blit(t_img, (tile_x, tile_y))
+    return result.convert()
+    
+    
 def main():
 
     log.debug('initializing screen')
     screen = screen_init()
 
     # Fill background
-    background = pygame.Surface(screen.get_size())
-    background = background.convert()
-    background.fill(white)
+    background = get_background(screen)
+    background_rect = background.get_rect()
+    
+    font = pygame.font.Font(None, 36)
 
     # Initialize Game Groups
     brown_spaces = pygame.sprite.RenderUpdates()
@@ -162,14 +176,21 @@ def main():
     currentpiece_position = origin
 
     fps_clock = Clock()
+    
+    def get_fps_text():
+        surface = font.render("%4.1f F/S" % fps_clock.get_fps(), 1, white)
+        rect = surface.get_rect()
+        rect.right, rect.bottom = background_rect.right, background_rect.bottom
+        return surface, rect
+    
+    fps_text, fps_rect = get_fps_text()
 
     # Event loop
     while True:
 
-        # We clear the drawn pieces every time around the loop (need to?)
+        screen.blit(background, fps_rect, area=fps_rect)
+        piece_selected.clear(screen, background)
         pieces.clear(screen, background)
-        brown_spaces.clear(screen, background)
-        tan_spaces.clear(screen, background)
 
         for event in pygame.event.get():
 
@@ -307,8 +328,6 @@ def main():
                 piece_selected.update(pygame.mouse.get_pos())
                 log.debug('updated piece to %s', pygame.mouse.get_pos())
 
-        brown_spaces.draw(screen)
-        tan_spaces.draw(screen)
         pieces.draw(screen)
         piece_selected.draw(screen)
 
@@ -341,11 +360,8 @@ def main():
         fps_clock.tick()
 
         # Render the framerate
-        fps_text = font.render("%4.1f F/S" % fps_clock.get_fps(), 1, white)
-        fps_pos = fps_text.get_rect()
-        background_rect = background.get_rect()
-        fps_pos.right, fps_pos.bottom = background_rect.right, background_rect.bottom
-        screen.blit(fps_text, fps_pos)
+        fps_text, fps_rect = get_fps_text()
+        screen.blit(fps_text, fps_rect)
 
         pygame.display.flip()
 

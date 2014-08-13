@@ -15,12 +15,16 @@ class Checkers:
     def _start_positions(self):
         """Returns a list of (player,x,y) tuples for start positions"""
         black_positions = [(BLACK, x, y) 
-                    for y in range(0, self._player_rows()) 
-                    for x in range((y + 1) % 2, self.dim, 2)]
+                    for y in xrange(0, self._player_rows()) 
+                    for x in xrange((y + 1) % 2, self.dim, 2)]
         red_positions = [(RED, x, y) 
-                    for y in range(self.dim - self._player_rows(), self.dim) 
-                    for x in range((y + 1) % 2, self.dim, 2)]
+                    for y in xrange(self.dim - self._player_rows(), self.dim) 
+                    for x in xrange((y + 1) % 2, self.dim, 2)]
         return black_positions + red_positions
+
+    def _usable_positions(self):
+        """Returns a generator for positions on the board that a piece can occupy."""
+        return [(x, y) for y in xrange(0, self.dim) for x in xrange((y + 1) % 2, self.dim, 2)]
 
     def _player_rows(self):
         """Returns the number of rows a player controls at game start"""
@@ -59,8 +63,8 @@ class Checkers:
     def __repr__(self):
         """Returns the board representation."""
         result = ""
-        for y in range(self.dim):
-            for x in range(self.dim):
+        for y in xrange(self.dim):
+            for x in xrange(self.dim):
                 if self[(x, y)] == BLACK:
                     result += 'B'
                 elif self[(x,y)] == RED:
