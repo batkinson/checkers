@@ -233,12 +233,8 @@ def main():
             # center the piece on the valid space; if it is not touching a space, return it to its original position
             space_selected.add(space for space in brown_spaces if space.rect.collidepoint(e.pos))
             pieces_there = [piece for piece in pieces if piece.rect.collidepoint(e.pos)]
-
-            valid_move = (len(space_selected) > 0)
-            # A move is valid if the drop is on a brown space and *only*
-            # the dragged piece is colliding with the destination space
-            valid_move = valid_move and len(pieces_there) == 0
-            capture_piece = 0
+            valid_move = piece_selected and space_selected and not pieces_there
+            capture_piece = False
 
             # if piece is kinged, piece goes to (row-1 and (col+1 or col-1))
             #                OR (piece on (col-1, row-1) and piece goes to (col-2, row-2) -- capture piece
