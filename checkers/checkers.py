@@ -29,6 +29,7 @@ board_dim = 8
 screen_res = (600, 600)
 window_title = 'Checkers'
 origin = (0, 0)
+show_fps = False
 
 log.debug('starting game')
 
@@ -185,11 +186,13 @@ def main():
         rect.right, rect.bottom = background_rect.right, background_rect.bottom
         return surface, rect
 
-    global fps_text, fps_rect
-    fps_text, fps_rect = get_fps_text()
+    if show_fps:
+        global fps_text, fps_rect
+        fps_text, fps_rect = get_fps_text()
 
     def clear_items():
-        screen.blit(background, fps_rect, area=fps_rect)
+        if show_fps:
+            screen.blit(background, fps_rect, area=fps_rect)
         piece_selected.clear(screen, background)
         pieces.clear(screen, background)
         
@@ -197,9 +200,10 @@ def main():
         global fps_text, fps_rect
         pieces.draw(screen)
         piece_selected.draw(screen)
-        fps_clock.tick()
-        fps_text, fps_rect = get_fps_text()
-        screen.blit(fps_text, fps_rect)
+        fps_clock.tick(60)  # Waits to maintain 60 fps
+        if show_fps:
+            fps_text, fps_rect = get_fps_text()
+            screen.blit(fps_text, fps_rect)
 
     def quit_game():
         log.debug('quitting')
