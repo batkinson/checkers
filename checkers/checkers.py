@@ -225,6 +225,9 @@ def main():
 
         if pygame.event.get_grab():
 
+            pygame.event.set_grab(False)
+            log.debug('releasing input')
+
             log.debug('dropped a piece')
 
             # center the piece on the valid space; if it is not touching a space, return it to its original position
@@ -325,8 +328,6 @@ def main():
                 pieces.remove(piece for piece in pieces if piece.rect.collidepoint(capture_piece_x, capture_piece_y))
 
             # clean up for the next selected piece
-            pygame.event.set_grab(False)
-            log.debug('releasing input')
             piece_selected.empty()
             space_selected.empty()
 
