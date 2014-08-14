@@ -131,7 +131,7 @@ def get_background(screen):
     result = pygame.Surface(screen.get_size()).convert()
     (b_img, _) = load_png('brown-space.png')
     (t_img, _) = load_png('tan-space.png')
-    usable = set(game._usable_positions())
+    usable = set(game.usable_positions())
     for x, y in [(x, y) for y in xrange(0, board_dim) for x in xrange(0, board_dim)]:
         tile_x, tile_y = x * tile_width, y * tile_width
         if (x, y) in usable:

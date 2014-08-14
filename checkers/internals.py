@@ -22,7 +22,7 @@ class Checkers:
                     for x in xrange((y + 1) % 2, self.dim, 2)]
         return black_positions + red_positions
 
-    def _usable_positions(self):
+    def usable_positions(self):
         """Returns a generator for positions on the board that a piece can occupy."""
         return [(x, y) for y in xrange(0, self.dim) for x in xrange((y + 1) % 2, self.dim, 2)]
 
