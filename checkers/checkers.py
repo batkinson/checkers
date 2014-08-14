@@ -319,8 +319,6 @@ def main():
                 piece_selected.update(currentpiece_position)
                 log.debug('invalid move: dropped piece at original position %s', currentpiece_position)
 
-            pieces.add(piece_selected)
-
             if capture_piece:
                 # It seems this information is recomputed from above
                 capture_piece_x = (space_selected.sprite.rect.centerx + currentpiece_position[0])/2
@@ -328,6 +326,9 @@ def main():
                 log.debug('captured piece at %s', (capture_piece_x, capture_piece_y))
                 pieces.remove(piece for piece in pieces if piece.rect.collidepoint(capture_piece_x, capture_piece_y))
 
+            # Add piece back to stationary set
+            pieces.add(piece_selected)
+            
             # clean up for the next selected piece
             piece_selected.empty()
             space_selected.empty()
