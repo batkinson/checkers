@@ -383,6 +383,7 @@ def main():
 
         draw_winner()
 
+        # TODO: Use display.update instead
         pygame.display.flip()
 
 if __name__ == '__main__':
