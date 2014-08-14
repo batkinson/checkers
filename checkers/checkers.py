@@ -199,19 +199,18 @@ def main():
         fps_clock.tick()
         fps_text, fps_rect = get_fps_text()
         screen.blit(fps_text, fps_rect)
-    
+
     def quit_game():
         log.debug('quitting')
         sys.exit()
-    
+
     def select_piece(e):
         global currentpiece_position
-        log.debug('mouse pressed')
         # select the piece by seeing if the piece collides with cursor
         piece_selected.add(piece for piece in pieces if piece.rect.collidepoint(e.pos))
         # Capture piece's original position (at center) to determine move on drop
         if len(piece_selected) > 0:
-        # Assumed: starting a move
+            # Assumed: starting a move
             pygame.event.set_grab(True)
             pieces.remove(piece_selected)
             currentpiece_position = (piece_selected.sprite.rect.centerx, piece_selected.sprite.rect.centery)
@@ -221,10 +220,8 @@ def main():
         #  Until botton is let go, move the piece with the mouse position
         piece_selected.update(pygame.mouse.get_pos())
         log.debug('updated piece to %s', pygame.mouse.get_pos())
-    
+
     def drop_piece(e):
-        
-        log.debug('mouse released')
 
         if pygame.event.get_grab():
 
@@ -369,14 +366,17 @@ def main():
 
             if event.type == QUIT:
                 quit_game()
-                
+
             if event.type == MOUSEBUTTONDOWN:     # select a piece
+                log.debug('mouse pressed')
                 select_piece(event)
 
             if event.type == MOUSEBUTTONUP:     # let go of a piece
+                log.debug('mouse released')
                 drop_piece(event)
 
             if pygame.event.get_grab():          # drag selected piece around
+                log.debug('dragging')
                 drag_piece()
 
         draw_items()
