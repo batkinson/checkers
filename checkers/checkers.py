@@ -9,6 +9,7 @@ import os
 import sys
 import logging as log
 import pygame
+from pygame.sprite import Sprite, RenderUpdates, GroupSingle
 from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 from pygame.time import Clock
 from internals import Checkers, RED, BLACK
@@ -52,12 +53,12 @@ def load_png(name, colorkey=None):
     return image, image.get_rect()
 
 
-class CheckerPiece(pygame.sprite.Sprite):
+class CheckerPiece(Sprite):
 
     """A sprite for a single piece."""
 
     def __init__(self, player, (centerx, centery)):
-        pygame.sprite.Sprite.__init__(self)
+        Sprite.__init__(self)
         screen = pygame.display.get_surface()
         self.area = screen.get_rect()
         if player == RED:
@@ -84,12 +85,12 @@ class CheckerPiece(pygame.sprite.Sprite):
         self.rect.centery = position[1]
 
 
-class BoardSpace(pygame.sprite.Sprite):
+class BoardSpace(Sprite):
 
     """A sprite abstraction for game board spaces."""
 
     def __init__(self, initial_position, color, row, col):
-        pygame.sprite.Sprite.__init__(self)
+        Sprite.__init__(self)
         screen = pygame.display.get_surface()
         self.area = screen.get_rect()
         self.color = color
@@ -153,8 +154,8 @@ def main():
     font = pygame.font.Font(None, 36)
 
     # Initialize Game Groups
-    brown_spaces = pygame.sprite.RenderUpdates()
-    pieces = pygame.sprite.RenderUpdates()
+    brown_spaces = RenderUpdates()
+    pieces = RenderUpdates()
 
     # board setup
     log.debug('building initial game board')
@@ -171,8 +172,8 @@ def main():
     screen.blit(background, origin)
     pygame.display.flip()
 
-    piece_selected = pygame.sprite.GroupSingle()
-    space_selected = pygame.sprite.GroupSingle()
+    piece_selected = GroupSingle()
+    space_selected = GroupSingle()
     global currentpiece_position
     currentpiece_position = origin
 
