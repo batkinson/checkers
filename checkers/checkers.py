@@ -15,6 +15,7 @@ from pygame.time import Clock
 from internals import Board, Piece, RED, BLACK, InvalidMoveException
 
 log.basicConfig(level=log.INFO)
+show_fps = True
 
 brown = (143, 96, 40)
 white = (255, 255, 255)
@@ -29,7 +30,6 @@ board_dim = 8
 screen_res = (600, 600)
 window_title = 'Checkers'
 origin = (0, 0)
-show_fps = False
 
 log.debug('starting game')
 
@@ -188,24 +188,27 @@ def main():
         rect.right, rect.bottom = background_rect.right, background_rect.bottom
         return surface, rect
 
-    if show_fps:
-        global fps_text, fps_rect
-        fps_text, fps_rect = get_fps_text()
-
-    def clear_items():
+    def clear_fps():
         if show_fps:
             screen.blit(background, fps_rect, area=fps_rect)
+
+    def draw_fps():
+        global fps_text, fps_rect
+        if show_fps:
+            fps_text, fps_rect = get_fps_text()
+        screen.blit(fps_text, fps_rect)
+
+    def clear_items():
+        clear_winner()
+        clear_fps()
         piece_selected.clear(screen, background)
         pieces.clear(screen, background)
         
     def draw_items():
-        global fps_text, fps_rect
         pieces.draw(screen)
         piece_selected.draw(screen)
-        fps_clock.tick(60)  # Waits to maintain 60 fps
-        if show_fps:
-            fps_text, fps_rect = get_fps_text()
-            screen.blit(fps_text, fps_rect)
+        draw_fps()
+        draw_winner()
 
     def quit_game():
         log.debug('quitting')
@@ -256,14 +259,22 @@ def main():
             piece_selected.empty()
             space_selected.empty()
 
-    def draw_winner():
+    def clear_winner():
         winner = game.winner()
         if winner:
-            text = font.render("The winner was %s!" % winner, 1, white)
-            textpos = text.get_rect()
-            textpos.centerx = background.get_rect().centerx
-            textpos.top = 100
-            screen.blit(text, textpos)
+            screen.blit(background, winner_text_rect, area=winner_text_rect)
+
+    def draw_winner():
+        global winner_text, winner_text_rect
+        winner = game.winner()
+        if winner:
+            winner_text = font.render("The winner is %s!" % winner, 1, white)
+            winner_text_rect = winner_text.get_rect()
+            winner_text_rect.centerx = background.get_rect().centerx
+            winner_text_rect.top = 100
+            screen.blit(winner_text, winner_text_rect)
+
+    draw_fps()
 
     # Event loop
     while True:
@@ -289,7 +300,7 @@ def main():
 
         draw_items()
 
-        draw_winner()
+        fps_clock.tick(60)  # Waits to maintain 60 fps
 
         # TODO: Use display.update instead
         pygame.display.flip()
