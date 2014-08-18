@@ -15,7 +15,7 @@ from pygame.time import Clock
 from internals import Board, Piece, RED, BLACK, InvalidMoveException
 
 log.basicConfig(level=log.INFO)
-show_fps = True
+show_fps = False
 
 brown = (143, 96, 40)
 white = (255, 255, 255)
