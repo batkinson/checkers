@@ -12,7 +12,7 @@ import pygame
 from pygame.sprite import Sprite, RenderUpdates, GroupSingle
 from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 from pygame.time import Clock
-from internals import Checkers, RED, BLACK
+from internals import Board, Piece, RED, BLACK
 
 log.basicConfig(level=log.INFO)
 
@@ -33,7 +33,7 @@ show_fps = False
 
 log.debug('starting game')
 
-game = Checkers(board_dim)
+game = Board(board_dim)
 
 
 def load_png(name, colorkey=None):
@@ -54,12 +54,13 @@ def load_png(name, colorkey=None):
     return image, image.get_rect()
 
 
-class CheckerPiece(Sprite):
+class CheckerPiece(Sprite, Piece):
 
     """A sprite for a single piece."""
 
     def __init__(self, player, (centerx, centery)):
         Sprite.__init__(self)
+        Piece.__init__(self, player)
         screen = pygame.display.get_surface()
         self.area = screen.get_rect()
         if player == RED:
@@ -113,12 +114,9 @@ def board_setup(**kwargs):
     """ initialize board state """
     # Initialize board spaces (they are sprites)
     # A better data structure would simplify this...
-    for row, col in [(r, c) for r in range(board_dim) for c in range(board_dim)]:
-            top, left = tile_width * row, tile_width * col
-            odd_row, odd_col = row % 2, col % 2
-            even_row, even_col = not odd_row, not odd_col
-            if (even_row and odd_col) or (odd_row and even_col):
-                brown_spaces.add(BoardSpace((left, top), "brown", row, col))
+    for col, row in game.usable_positions():
+        loc = tile_width * row, tile_width * col
+        brown_spaces.add(BoardSpace(loc, "brown", row, col))
 
 
 def screen_init():
@@ -133,7 +131,7 @@ def get_background(screen):
     result = pygame.Surface(screen.get_size()).convert()
     (b_img, _) = load_png('brown-space.png')
     (t_img, _) = load_png('tan-space.png')
-    usable = set(game.usable_positions())
+    usable = game.usable_positions()
     for x, y in [(x, y) for y in xrange(0, board_dim) for x in xrange(0, board_dim)]:
         tile_x, tile_y = x * tile_width, y * tile_width
         if (x, y) in usable:
@@ -164,10 +162,11 @@ def main():
 
     # Intialize playing pieces
     log.debug('initializing game pieces')
-    for player, col, row in game:
+    for player, col, row in game.start_positions():
         top, left = tile_width*row, tile_width*col
         new_piece = CheckerPiece(player, (left+(tile_width/2), top+(tile_width/2)))
         pieces.add(new_piece)
+        game.add_piece(new_piece, (col, row))
 
     # Blit everything to the screen
     screen.blit(background, origin)

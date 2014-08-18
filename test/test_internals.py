@@ -1,21 +1,21 @@
 from unittest import TestCase
-from checkers.internals import Checkers, RED, BLACK
+from checkers.internals import Board, RED, BLACK
 
 
 class Test_Checkers(TestCase):
 
     def setUp(self):
-        self.state = Checkers()
+        self.state = Board()
 
     def test_no_winner(self):
         self.assertTrue(self.state.winner() is None, 'Initial board should have no winner')
 
     def test_black_wins(self):
-        self.state.pieces[RED] = []
+        self.state._player_pieces[RED] = []
         self.assertEqual(BLACK, self.state.winner(), "Black should be winner")
 
     def test_red_wins(self):
-        self.state.pieces[BLACK] = []
+        self.state._player_pieces[BLACK] = []
         self.assertEqual(RED, self.state.winner(), "Red should be winner")
 
     def test_getitem(self):
