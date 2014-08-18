@@ -196,7 +196,7 @@ def main():
         global fps_text, fps_rect
         if show_fps:
             fps_text, fps_rect = get_fps_text()
-        screen.blit(fps_text, fps_rect)
+            screen.blit(fps_text, fps_rect)
 
     def clear_items():
         clear_winner()
