@@ -1,3 +1,4 @@
+from matplotlib.pyplot import pie
 
 RED = "red"
 BLACK = "black"
@@ -39,6 +40,12 @@ class Piece():
         self.king = False
         self.board = None
         self.location = None
+
+    def __str__(self):
+        p = self.player[:1]
+        if self.king:
+            return p.upper()
+        return p
 
 
 class Board:
@@ -95,11 +102,12 @@ class Board:
             raise InvalidPlacementException('can not place piece at %s' % location)
         piece.board = self
         piece.location = location
+        self._loc_pieces[location] = piece
         self._player_pieces[piece.player].add(piece)
 
     def _valid_placement(self, piece, location):
         """Returns true if the specified piece can be placed at the specified location."""
-        return location in self._usable_positions and not self[location]
+        return location in self._usable_positions and not location in self
 
     def start_positions(self):
         """Returns a list of (player,x,y) tuples for start positions"""
@@ -123,9 +131,11 @@ class Board:
 
     def __getitem__(self, loc):
         """Returns the piece occupying the position specified as a tuple (x,y)"""
-        if not loc in self._loc_pieces:
-            return None
         return self._loc_pieces[loc]
+
+    def __contains__(self, loc):
+        """Returns whether there is a piece at the specified location"""
+        return loc in self._loc_pieces
 
     def __setitem__(self, loc, piece):
         """Sets the piece occupying the position specified by the tuple (x,y)
@@ -144,23 +154,24 @@ class Board:
 
     def _valid_move(self, source, target):
         """Returns whether the move from source to target is a valid move."""
-
+        move = (source, target)
         # Not valid move if the source isn't occupied or target is occupied
-        if not self[source] or self[target]:
+        if not source in self or target in self:
             return False
 
         piece = self[source]
         player = piece.player
         moves, jumps = self._moves[player], self._jumps[player]
-        capture = self._captures[(source, target)]
 
         if piece.king:
             moves, jumps = self._king_moves, self._king_jumps
 
         if target in moves[source]:
             return True
-        elif target in jumps[source] and self[capture].player == opponent[player]:
-            return True
+        elif target in jumps[source] and move in self._captures:
+            capture = self._captures[move]
+            if capture in self and self[capture].player == opponent[player]:
+                return True
 
         return False
 
@@ -170,11 +181,11 @@ class Board:
         result = None
         piece = self[source]
         player = piece.player
-        capture = self._captures[(source, target)]
         moves, jumps = self._moves[player], self._jumps[player]
         if piece.king:
             moves, jumps = self._king_moves, self._king_jumps
         if target in jumps[source]:  # Handle a capture
+            capture = self._captures[(source, target)]
             captured_piece = self[capture]
             self._player_pieces[captured_piece.player].remove(captured_piece)  # Remove piece from player
             self._loc_pieces.pop(capture)  # Remove captured piece from board
@@ -184,12 +195,17 @@ class Board:
         self._loc_pieces.pop(source, None)  # Remove piece from original location
         self._loc_pieces[target] = piece
         piece.location = target
+        if not piece.king:
+            if player == RED:
+                piece.king = piece.location[1] == 0
+            elif player == BLACK:
+                piece.king = piece.location[1] == self.dim - 1
         return result
 
     def move(self, source, target):
         """Moves the piece at source position to target and returns None or the location of a captured piece.
         It throws a InvalidMoveError if the move is not valid."""
-        if not self._valid_move():
+        if not self._valid_move(source, target):
             raise InvalidMoveException("invalid move from %s to %s" % (source, target))
         return self._move_and_capture(source, target)
 
@@ -198,15 +214,14 @@ class Board:
         consecutive turns, such as when jumping multiple pieces."""
         return True
 
-    def __repr__(self):
-        """Returns the board representation."""
+    def __str__(self):
+        """Returns the board in string form."""
         result = ""
         for y in xrange(self.dim):
             for x in xrange(self.dim):
-                if self[(x, y)] == BLACK:
-                    result += 'B'
-                elif self[(x,y)] == RED:
-                    result += 'R'
+                loc = (x, y)
+                if loc in self:
+                    result += str(self[loc])
                 else:
                     result += '*'
             result += '\n'

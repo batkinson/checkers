@@ -12,7 +12,7 @@ import pygame
 from pygame.sprite import Sprite, RenderUpdates, GroupSingle
 from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 from pygame.time import Clock
-from internals import Board, Piece, RED, BLACK
+from internals import Board, Piece, RED, BLACK, InvalidMoveException
 
 log.basicConfig(level=log.INFO)
 
@@ -54,11 +54,11 @@ def load_png(name, colorkey=None):
     return image, image.get_rect()
 
 
-class CheckerPiece(Sprite, Piece):
+class CheckerPiece(Piece, Sprite):
 
     """A sprite for a single piece."""
 
-    def __init__(self, player, (centerx, centery)):
+    def __init__(self, player):
         Sprite.__init__(self)
         Piece.__init__(self, player)
         screen = pygame.display.get_surface()
@@ -71,20 +71,23 @@ class CheckerPiece(Sprite, Piece):
             print 'Invalid player name: ', player
             raise SystemExit
         self.player = player
-        self.rect.centerx = centerx
-        self.rect.centery = centery
         self.type = "man"
 
-    def king(self):
-        self.type = "king"
-        if self.player == RED:
-            self.image, self.rect = load_png('red-piece-king.png', brown)
-        elif self.player == BLACK:
-            self.image, self.rect = load_png('black-piece-king.png', brown)
+    def update_from_board(self):
+
+        if self.king and self.type != "king":
+            # This needs to happen before the rect update below because rect is replaced by image load
+            self.type = "king"
+            if self.player == RED:
+                self.image, self.rect = load_png('red-piece-king.png', brown)
+            elif self.player == BLACK:
+                self.image, self.rect = load_png('black-piece-king.png', brown)
+
+        self.rect.centerx = tile_width * self.location[0] + (tile_width / 2)
+        self.rect.centery = tile_width * self.location[1] + (tile_width / 2)
 
     def update(self, position):
-        self.rect.centerx = position[0]
-        self.rect.centery = position[1]
+        self.rect.centerx, self.rect.centery = position
 
 
 class BoardSpace(Sprite):
@@ -115,7 +118,7 @@ def board_setup(**kwargs):
     # Initialize board spaces (they are sprites)
     # A better data structure would simplify this...
     for col, row in game.usable_positions():
-        loc = tile_width * row, tile_width * col
+        loc = tile_width * col, tile_width * row
         brown_spaces.add(BoardSpace(loc, "brown", row, col))
 
 
@@ -162,11 +165,11 @@ def main():
 
     # Intialize playing pieces
     log.debug('initializing game pieces')
-    for player, col, row in game.start_positions():
-        top, left = tile_width*row, tile_width*col
-        new_piece = CheckerPiece(player, (left+(tile_width/2), top+(tile_width/2)))
+    for player, x, y in game.start_positions():
+        new_piece = CheckerPiece(player)
+        game.add_piece(new_piece, (x, y))
+        new_piece.update_from_board()
         pieces.add(new_piece)
-        game.add_piece(new_piece, (col, row))
 
     # Blit everything to the screen
     screen.blit(background, origin)
@@ -226,104 +229,25 @@ def main():
         log.debug('updated piece to %s', pygame.mouse.get_pos())
 
     def drop_piece(e):
-
         if pygame.event.get_grab():
-
             pygame.event.set_grab(False)
             log.debug('releasing input')
 
-            log.debug('dropped a piece')
-
             # center the piece on the valid space; if it is not touching a space, return it to its original position
             space_selected.add(space for space in brown_spaces if space.rect.collidepoint(e.pos))
-            pieces_there = [piece for piece in pieces if piece.rect.collidepoint(e.pos)]
-            valid_move = piece_selected and space_selected and not pieces_there
-            capture_piece = False
 
-            # if piece is kinged, piece goes to (row-1 and (col+1 or col-1))
-            #                OR (piece on (col-1, row-1) and piece goes to (col-2, row-2) -- capture piece
-            #                OR (piece on (col+1, row-1) and piece goes to (col+2, row-2) -- capture piece
-            #                OR piece goes to (row+1 and (col+1 or col-1))
-            #                OR (piece on (col-1, row+1) and piece goes to (col-2, row+2) -- capture piece
-            #                OR (piece on (col+1, row+1) and piece goes to (col+2, row+2) -- capture piece
-            # else if piece is black, piece goes to (row+1 and (col+1 or col-1))
-            #                OR (piece on (col-1, row+1) and piece goes to (col-2, row+2) -- capture piece
-            #                OR (piece on (col+1, row+1) and piece goes to (col+2, row+2) -- capture piece
-            # else if piece is red, piece goes to (row-1 and (col+1 or col-1))
-            #                OR (piece on (col-1, row-1) and piece goes to (col-2, row-2) -- capture piece
-            #                OR (piece on (col+1, row-1) and piece goes to (col+2, row-2) -- capture piece
+            if piece_selected and space_selected:
+                log.debug('dropped a piece')
+                piece, space = piece_selected.sprite, space_selected.sprite
+                try:
+                    captured = game.move(piece.location, (space.col, space.row))
+                    if captured:
+                        pieces.remove(captured)
+                except InvalidMoveException as ce:
+                    log.debug(ce)
+                log.debug(str(game))
 
-            if valid_move:
-
-                if piece_selected.sprite.type == "king":
-                    # Kings can move forward and backwards
-                    if space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]-tile_width) \
-                        or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]-tile_width):
-                        pass
-                    elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]-tile_width)]) > 0\
-                        and space_selected.sprite.rect.collidepoint(currentpiece_position[0]-2*tile_width, currentpiece_position[1]-2*tile_width):
-                        capture_piece = True
-                    elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]-tile_width)]) > 0\
-                            and space_selected.sprite.rect.collidepoint(currentpiece_position[0]+2*tile_width, currentpiece_position[1]-2*tile_width):
-                        capture_piece = True
-                    elif space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]+tile_width) \
-                        or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]+tile_width):
-                        pass
-                    elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]+tile_width)]) > 0\
-                            and space_selected.sprite.rect.collidepoint(currentpiece_position[0]-2*tile_width, currentpiece_position[1]+2*tile_width):
-                        capture_piece = True
-                    elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]+tile_width)]) > 0\
-                            and space_selected.sprite.rect.collidepoint(currentpiece_position[0]+2*tile_width, currentpiece_position[1]+2*tile_width):
-                        capture_piece = True
-                    else:
-                        valid_move = False
-                # Normal pieces (not kings) can only move towards opposing side
-                elif (piece_selected.sprite.player == BLACK) and (len(space_selected) > 0):
-                    if space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]+tile_width) \
-                        or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]+tile_width):
-                        pass
-                    elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]+tile_width)]) > 0\
-                            and space_selected.sprite.rect.collidepoint(currentpiece_position[0]-2*tile_width, currentpiece_position[1]+2*tile_width):
-                        capture_piece = True
-                    elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]+tile_width)]) > 0\
-                            and space_selected.sprite.rect.collidepoint(currentpiece_position[0]+2*tile_width, currentpiece_position[1]+2*tile_width):
-                        capture_piece = True
-                    else:
-                        valid_move = False
-                elif (piece_selected.sprite.player == RED) and (len(space_selected) > 0):
-                    if space_selected.sprite.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]-tile_width) \
-                        or space_selected.sprite.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]-tile_width):
-                        pass
-                    elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]-tile_width, currentpiece_position[1]-tile_width)]) > 0\
-                            and space_selected.sprite.rect.collidepoint(currentpiece_position[0]-2*tile_width, currentpiece_position[1]-2*tile_width):
-                        capture_piece = True
-                    elif len([piece for piece in pieces if piece.rect.collidepoint(currentpiece_position[0]+tile_width, currentpiece_position[1]-tile_width)]) > 0\
-                            and space_selected.sprite.rect.collidepoint(currentpiece_position[0]+2*tile_width, currentpiece_position[1]-2*tile_width):
-                        capture_piece = True
-                    else:
-                        valid_move = False
-                else:
-                    valid_move = False
-
-            if valid_move:
-                # king the piece if applicable
-                if (piece_selected.sprite.player == RED and space_selected.sprite.row == 0) \
-                    or (piece_selected.sprite.player == BLACK and space_selected.sprite.row == 7):
-                    log.debug('kinged piece')
-                    piece_selected.sprite.king()
-                new_pos = (space_selected.sprite.rect.centerx, space_selected.sprite.rect.centery)
-                piece_selected.update(new_pos)
-                log.debug('valid move: dropped piece at new position %s', new_pos)
-            else:
-                piece_selected.update(currentpiece_position)
-                log.debug('invalid move: dropped piece at original position %s', currentpiece_position)
-
-            if capture_piece:
-                # It seems this information is recomputed from above
-                capture_piece_x = (space_selected.sprite.rect.centerx + currentpiece_position[0])/2
-                capture_piece_y = (space_selected.sprite.rect.centery + currentpiece_position[1])/2
-                log.debug('captured piece at %s', (capture_piece_x, capture_piece_y))
-                pieces.remove(piece for piece in pieces if piece.rect.collidepoint(capture_piece_x, capture_piece_y))
+            piece_selected.sprite.update_from_board()
 
             # Add piece back to stationary set
             pieces.add(piece_selected)
@@ -333,27 +257,9 @@ def main():
             space_selected.empty()
 
     def draw_winner():
-        # determine if someone has won yet
-        # It seems this is two ops:
-        #    Who is the game winner, if any
-        #    Show the winner
-        # Missing is ending game?
-        red_pieces = 0
-        black_pieces = 0
-        for piece in pieces:
-            if piece.player == RED:
-                red_pieces += 1
-            elif piece.player == BLACK:
-                black_pieces += 1
-        if red_pieces > 0 or black_pieces == 0:
-            font = pygame.font.Font(None, 36)
-            text = font.render("", 1, white)
-            if red_pieces == 0:
-                text = font.render("The black player won!", 1, white)
-                print "The black player won!"
-            elif black_pieces == 0:
-                text = font.render("The red player won!", 1, white)
-                print "The red player won!"
+        winner = game.winner()
+        if winner:
+            text = font.render("The winner was %s!" % winner, 1, white)
             textpos = text.get_rect()
             textpos.centerx = background.get_rect().centerx
             textpos.top = 100
