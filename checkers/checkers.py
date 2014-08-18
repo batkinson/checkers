@@ -26,8 +26,9 @@ global screen_res
 global window_title
 
 tile_width = 75
+border_width = 50
 board_dim = 8
-screen_res = (600, 600)
+screen_res = (650, 650)
 window_title = 'Checkers'
 origin = (0, 0)
 
@@ -36,7 +37,7 @@ log.debug('starting game')
 game = Board(board_dim)
 
 
-def load_png(name, colorkey=None):
+def load_img(name, colorkey=None):
     """ Load image and return image object"""
     fullname = os.path.join('../images', name)
     log.debug('loading png: %s', fullname)
@@ -64,9 +65,9 @@ class CheckerPiece(Piece, Sprite):
         screen = pygame.display.get_surface()
         self.area = screen.get_rect()
         if player == RED:
-            self.image, self.rect = load_png('red-piece.png', brown)
+            self.image, self.rect = load_img('red-piece.png', brown)
         elif player == BLACK:
-            self.image, self.rect = load_png('black-piece.png', brown)
+            self.image, self.rect = load_img('black-piece.png', brown)
         else:
             print 'Invalid player name: ', player
             raise SystemExit
@@ -79,12 +80,12 @@ class CheckerPiece(Piece, Sprite):
             # This needs to happen before the rect update below because rect is replaced by image load
             self.type = "king"
             if self.player == RED:
-                self.image, self.rect = load_png('red-piece-king.png', brown)
+                self.image, self.rect = load_img('red-piece-king.png', brown)
             elif self.player == BLACK:
-                self.image, self.rect = load_png('black-piece-king.png', brown)
+                self.image, self.rect = load_img('black-piece-king.png', brown)
 
-        self.rect.centerx = tile_width * self.location[0] + (tile_width / 2)
-        self.rect.centery = tile_width * self.location[1] + (tile_width / 2)
+        self.rect.centerx = tile_width * self.location[0] + (tile_width / 2) + (border_width / 2)
+        self.rect.centery = tile_width * self.location[1] + (tile_width / 2) + (border_width / 2)
 
     def update(self, position):
         self.rect.centerx, self.rect.centery = position
@@ -102,9 +103,9 @@ class BoardSpace(Sprite):
         self.row = row
         self.col = col
         if color == "brown":
-            self.image, self.rect = load_png('brown-space.png')
+            self.image, self.rect = load_img('brown-space.png')
         elif color == "tan":
-            self.image, self.rect = load_png('tan-space.png')
+            self.image, self.rect = load_img('tan-space.png')
         else:
             print 'Invalid space color: ', color
             raise SystemExit
@@ -118,7 +119,7 @@ def board_setup(**kwargs):
     # Initialize board spaces (they are sprites)
     # A better data structure would simplify this...
     for col, row in game.usable_positions():
-        loc = tile_width * col, tile_width * row
+        loc = tile_width * col + (border_width / 2), tile_width * row + (border_width / 2)
         brown_spaces.add(BoardSpace(loc, "brown", row, col))
 
 
@@ -132,15 +133,8 @@ def screen_init():
 
 def get_background(screen):
     result = pygame.Surface(screen.get_size()).convert()
-    (b_img, _) = load_png('brown-space.png')
-    (t_img, _) = load_png('tan-space.png')
-    usable = game.usable_positions()
-    for x, y in [(x, y) for y in xrange(0, board_dim) for x in xrange(0, board_dim)]:
-        tile_x, tile_y = x * tile_width, y * tile_width
-        if (x, y) in usable:
-            result.blit(b_img, (tile_x, tile_y))
-        else:
-            result.blit(t_img, (tile_x, tile_y))
+    (bg_img, bg_rect) = load_img('marble-board.jpg')
+    result.blit(bg_img, bg_rect)
     return result.convert()
 
 
