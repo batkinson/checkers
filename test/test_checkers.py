@@ -2,7 +2,8 @@ from checkers.checkers import screen_init
 from unittest import TestCase
 
 
-class Test_Screen(TestCase):
+class TestScreen(TestCase):
+
     def setUp(self):
         self.screen = screen_init()
 

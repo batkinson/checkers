@@ -100,10 +100,7 @@ class Board:
             raise ChessException('can only add Pieces')
         if not self._valid_placement(piece, location):
             raise InvalidPlacementException('can not place piece at %s' % location)
-        piece.board = self
-        piece.location = location
-        self._loc_pieces[location] = piece
-        self._player_pieces[piece.player].add(piece)
+        self[location] = piece
 
     def _valid_placement(self, piece, location):
         """Returns true if the specified piece can be placed at the specified location."""
@@ -140,7 +137,17 @@ class Board:
     def __setitem__(self, loc, piece):
         """Sets the piece occupying the position specified by the tuple (x,y)
         to the specified player"""
-        self.move(piece.location, loc)
+        if piece.player not in players:
+            raise ChessException('Piece doe not belong to a player')
+        if piece in self._player_pieces:
+            self._player_pieces.pop(piece)
+        if piece in self._loc_pieces.values():
+            loc, piece = [item for item in self._loc_pieces.items() if item[0] == piece]
+            self._loc_pieces.pop(loc)
+        piece.board = self
+        piece.location = loc
+        self._loc_pieces[loc] = piece
+        self._player_pieces[piece.player].add(piece)
 
     def winner(self):
         """Returns the player that has won the game or None if no winner."""
