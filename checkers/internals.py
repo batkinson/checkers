@@ -1,4 +1,3 @@
-from matplotlib.pyplot import pie
 
 RED = "red"
 BLACK = "black"
