@@ -14,48 +14,42 @@ from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 from pygame.time import Clock
 from internals import Board, Piece, RED, BLACK, InvalidMoveException
 
-log.basicConfig(level=log.INFO)
-show_fps = False
-
-brown = (143, 96, 40)
-white = (255, 255, 255)
-
-global tile_width
-global board_dim
-global screen_res
-global window_title
-
-tile_width = 75
-border_width = 50
-board_dim = 8
-screen_res = (650, 650)
-window_title = 'Checkers'
-origin = (0, 0)
-
-log.debug('starting game')
-
-game = Board(board_dim)
+BROWN = (143, 96, 40)
+WHITE = (255, 255, 255)
+TILE_WIDTH = 75
+BORDER_WIDTH = 50
+BOARD_DIM = 8
+SCREEN_RES = (650, 650)
+ORIGIN = (0, 0)
 
 
-def load_img(name, colorkey=None):
-    """ Load image and return image object"""
-    fullname = os.path.join('../images', name)
-    log.debug('loading png: %s', fullname)
-    try:
-        image = pygame.image.load(fullname)
-        if colorkey:
-            image.set_colorkey(brown)   # make all brown transparent
-        if image.get_alpha() is None:
-            image = image.convert()
-        else:
-            image = image.convert_alpha()
-    except pygame.error, message:
+class ImageLoader:
+
+    """Loads image resources."""
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def load_img(name, color_key=None):
+        """ Load image and return image object"""
+        fullname = os.path.join('../images', name)
+        log.debug('loading: %s', fullname)
+        try:
+            image = pygame.image.load(fullname)
+            if color_key:
+                image.set_colorkey(color_key)   # make all brown transparent
+            if image.get_alpha() is None:
+                image = image.convert()
+            else:
+                image = image.convert_alpha()
+            return image, image.get_rect()
+        except pygame.error, message:
             log.exception('failed to load image %s: %s', fullname, message)
             raise SystemExit
-    return image, image.get_rect()
 
 
-class CheckerPiece(Piece, Sprite):
+class PieceSprite(Piece, Sprite):
 
     """A sprite for a single piece."""
 
@@ -65,9 +59,9 @@ class CheckerPiece(Piece, Sprite):
         screen = pygame.display.get_surface()
         self.area = screen.get_rect()
         if player == RED:
-            self.image, self.rect = load_img('red-piece.png', brown)
+            self.image, self.rect = ImageLoader.load_img('red-piece.png', BROWN)
         elif player == BLACK:
-            self.image, self.rect = load_img('black-piece.png', brown)
+            self.image, self.rect = ImageLoader.load_img('black-piece.png', BROWN)
         else:
             print 'Invalid player name: ', player
             raise SystemExit
@@ -80,18 +74,18 @@ class CheckerPiece(Piece, Sprite):
             # This needs to happen before the rect update below because rect is replaced by image load
             self.type = "king"
             if self.player == RED:
-                self.image, self.rect = load_img('red-piece-king.png', brown)
+                self.image, self.rect = ImageLoader.load_img('red-piece-king.png', BROWN)
             elif self.player == BLACK:
-                self.image, self.rect = load_img('black-piece-king.png', brown)
+                self.image, self.rect = ImageLoader.load_img('black-piece-king.png', BROWN)
 
-        self.rect.centerx = tile_width * self.location[0] + (tile_width / 2) + (border_width / 2)
-        self.rect.centery = tile_width * self.location[1] + (tile_width / 2) + (border_width / 2)
+        self.rect.centerx = TILE_WIDTH * self.location[0] + (TILE_WIDTH / 2) + (BORDER_WIDTH / 2)
+        self.rect.centery = TILE_WIDTH * self.location[1] + (TILE_WIDTH / 2) + (BORDER_WIDTH / 2)
 
     def update(self, position):
         self.rect.centerx, self.rect.centery = position
 
 
-class BoardSpace(Sprite):
+class SquareSprite(Sprite):
 
     """A sprite abstraction for game board spaces."""
 
@@ -103,201 +97,213 @@ class BoardSpace(Sprite):
         self.row = row
         self.col = col
         if color == "brown":
-            self.image, self.rect = load_img('brown-space.png')
+            self.image, self.rect = ImageLoader.load_img('brown-space.png')
         elif color == "tan":
-            self.image, self.rect = load_img('tan-space.png')
+            self.image, self.rect = ImageLoader.load_img('tan-space.png')
         else:
             print 'Invalid space color: ', color
             raise SystemExit
         self.rect.topleft = initial_position
 
 
-def board_setup(**kwargs):
-    brown_spaces = kwargs.get('brown_spaces')
+class Game:
 
-    """ initialize board state """
-    # Initialize board spaces (they are sprites)
-    # A better data structure would simplify this...
-    for col, row in game.usable_positions():
-        loc = tile_width * col + (border_width / 2), tile_width * row + (border_width / 2)
-        brown_spaces.add(BoardSpace(loc, "brown", row, col))
+    def __init__(self, title='Checkers', log_level=log.INFO, show_fps=False):
+        log.basicConfig(level=log_level)
+        self.show_fps = show_fps
+        self.window_title = title
+        self.game = Board(BOARD_DIM)
+        # Initialize Game Groups
+        self.brown_spaces = RenderUpdates()
+        self.pieces = RenderUpdates()
+        self.piece_selected = GroupSingle()
+        self.space_selected = GroupSingle()
+        self.current_piece_position = ORIGIN
+        self.screen = None
+        self.font = None
+        self.fps_clock = None
+        self.background = None
+        self.fps_text = None
+        self.winner_text = None
 
+    def _board_setup(self, **kwargs):
+        """ initialize board state """
+        brown_spaces = kwargs.get('brown_spaces')
+        for col, row in self.game.usable_positions():
+            loc = TILE_WIDTH * col + (BORDER_WIDTH / 2), TILE_WIDTH * row + (BORDER_WIDTH / 2)
+            brown_spaces.add(SquareSprite(loc, "brown", row, col))
 
-def screen_init():
-    """ Initialise screen """
-    pygame.init()
-    screen = pygame.display.set_mode(screen_res)
-    pygame.display.set_caption(window_title)
-    return screen
+    def _screen_init(self):
+        """ Initialise screen """
+        pygame.init()
+        self.screen = pygame.display.set_mode(SCREEN_RES)
+        pygame.display.set_caption(self.window_title)
+        return self.screen
 
+    def _get_background(self):
+        result = pygame.Surface(self.screen.get_size()).convert()
+        (bg_img, bg_rect) = ImageLoader.load_img('marble-board.jpg')
+        result.blit(bg_img, bg_rect)
+        return result.convert()
 
-def get_background(screen):
-    result = pygame.Surface(screen.get_size()).convert()
-    (bg_img, bg_rect) = load_img('marble-board.jpg')
-    result.blit(bg_img, bg_rect)
-    return result.convert()
-
-
-def main():
-
-    log.debug('initializing screen')
-
-    # Fill background
-    screen = screen_init()
-    background = get_background(screen)
-    background_rect = background.get_rect()
-
-    font = pygame.font.Font(None, 36)
-
-    # Initialize Game Groups
-    brown_spaces = RenderUpdates()
-    pieces = RenderUpdates()
-
-    # board setup
-    log.debug('building initial game board')
-    board_setup(brown_spaces=brown_spaces)
-
-    # Intialize playing pieces
-    log.debug('initializing game pieces')
-    for player, x, y in game.start_positions():
-        new_piece = CheckerPiece(player)
-        game.add_piece(new_piece, (x, y))
-        new_piece.update_from_board()
-        pieces.add(new_piece)
-
-    # Blit everything to the screen
-    screen.blit(background, origin)
-    pygame.display.flip()
-
-    piece_selected = GroupSingle()
-    space_selected = GroupSingle()
-    global currentpiece_position
-    currentpiece_position = origin
-
-    fps_clock = Clock()
-
-    def get_fps_text():
-        surface = font.render("%4.1f F/S" % fps_clock.get_fps(), 1, white)
-        rect = surface.get_rect()
+    def _get_fps_text(self):
+        fps_text = self.font.render("%4.1f fps" % self.fps_clock.get_fps(), True, WHITE)
+        rect = fps_text.get_rect()
+        background_rect = self.background.get_rect()
         rect.right, rect.bottom = background_rect.right, background_rect.bottom
-        return surface, rect
+        return fps_text, rect
 
-    def clear_fps():
-        if show_fps:
-            screen.blit(background, fps_rect, area=fps_rect)
+    def _draw_fps(self):
+        if self.show_fps:
+            self.fps_text, fps_rect = self._get_fps_text()
+            self.screen.blit(self.fps_text, fps_rect, area=fps_rect)
 
-    def draw_fps():
-        global fps_text, fps_rect
-        if show_fps:
-            fps_text, fps_rect = get_fps_text()
-            screen.blit(fps_text, fps_rect)
+    def _clear_fps(self):
+        if self.show_fps:
+            fps_rect = self.fps_text.get_rect()
+            self.screen.blit(self.background, fps_rect, area=fps_rect)
 
-    def clear_items():
-        clear_winner()
-        clear_fps()
-        piece_selected.clear(screen, background)
-        pieces.clear(screen, background)
-        
-    def draw_items():
-        pieces.draw(screen)
-        piece_selected.draw(screen)
-        draw_fps()
-        draw_winner()
+    def _clear_items(self):
+        self._clear_winner()
+        self._clear_fps()
+        self.piece_selected.clear(self.screen, self.background)
+        self.pieces.clear(self.screen, self.background)
 
-    def quit_game():
+    def _draw_winner(self):
+        winner = self.game.winner()
+        if winner:
+            self.winner_text = self.font.render("%s wins!" % winner.title(), True, WHITE)
+            winner_text_rect = self.winner_text.get_rect()
+            winner_text_rect.centerx = self.background.get_rect().centerx
+            winner_text_rect.top = 100
+            self.screen.blit(self.winner_text, winner_text_rect, area=winner_text_rect)
+
+    def _clear_winner(self):
+        winner = self.game.winner()
+        if winner:
+            winner_rect = self.winner_text.get_rect()
+            self.screen.blit(self.background, winner_rect, area=winner_rect)
+
+    def _quit(self):
         log.debug('quitting')
         sys.exit()
 
-    def select_piece(e):
-        global currentpiece_position
+    def _select_piece(self, event):
         # select the piece by seeing if the piece collides with cursor
-        piece_selected.add(piece for piece in pieces if piece.rect.collidepoint(e.pos))
+        self.piece_selected.add(piece for piece in self.pieces if piece.rect.collidepoint(event.pos))
         # Capture piece's original position (at center) to determine move on drop
-        if len(piece_selected) > 0:
+        if len(self.piece_selected) > 0:
             # Assumed: starting a move
             pygame.event.set_grab(True)
-            pieces.remove(piece_selected)
-            currentpiece_position = (piece_selected.sprite.rect.centerx, piece_selected.sprite.rect.centery)
-            log.debug('grabbing input, picked up piece at %s', currentpiece_position)
+            self.pieces.remove(self.piece_selected)
+            self.current_piece_position = (self.piece_selected.sprite.rect.centerx,
+                                           self.piece_selected.sprite.rect.centery)
+            log.debug('grabbing input, picked up piece at %s', self.current_piece_position)
 
-    def drag_piece():
-        #  Until botton is let go, move the piece with the mouse position
-        piece_selected.update(pygame.mouse.get_pos())
+    def _drag_piece(self):
+        #  Until button is let go, move the piece with the mouse position
+        self.piece_selected.update(pygame.mouse.get_pos())
         log.debug('updated piece to %s', pygame.mouse.get_pos())
 
-    def drop_piece(e):
+    def _drop_piece(self, event):
         if pygame.event.get_grab():
             pygame.event.set_grab(False)
             log.debug('releasing input')
 
             # center the piece on the valid space; if it is not touching a space, return it to its original position
-            space_selected.add(space for space in brown_spaces if space.rect.collidepoint(e.pos))
+            self.space_selected.add(space for space in self.brown_spaces
+                                    if space.rect.collidepoint(event.pos))
 
-            if piece_selected and space_selected:
+            if self.piece_selected and self.space_selected:
                 log.debug('dropped a piece')
-                piece, space = piece_selected.sprite, space_selected.sprite
+                piece, space = self.piece_selected.sprite, self.space_selected.sprite
                 try:
-                    captured = game.move(piece.location, (space.col, space.row))
+                    captured = self.game.move(piece.location, (space.col, space.row))
                     if captured:
-                        pieces.remove(captured)
+                        self.pieces.remove(captured)
                 except InvalidMoveException as ce:
                     log.debug(ce)
-                log.debug(str(game))
+                log.debug("%s", str(self.game))
 
-            piece_selected.sprite.update_from_board()
+            self.piece_selected.sprite.update_from_board()
 
             # Add piece back to stationary set
-            pieces.add(piece_selected)
-            
+            self.pieces.add(self.piece_selected)
+
             # clean up for the next selected piece
-            piece_selected.empty()
-            space_selected.empty()
+            self.piece_selected.empty()
+            self.space_selected.empty()
 
-    def clear_winner():
-        winner = game.winner()
-        if winner:
-            screen.blit(background, winner_text_rect, area=winner_text_rect)
+    def _draw_items(self):
+        self.pieces.draw(self.screen)
+        self.piece_selected.draw(self.screen)
+        self._draw_winner()
+        self._draw_fps()
 
-    def draw_winner():
-        global winner_text, winner_text_rect
-        winner = game.winner()
-        if winner:
-            winner_text = font.render("The winner is %s!" % winner, 1, white)
-            winner_text_rect = winner_text.get_rect()
-            winner_text_rect.centerx = background.get_rect().centerx
-            winner_text_rect.top = 100
-            screen.blit(winner_text, winner_text_rect)
 
-    draw_fps()
+    def run(self):
 
-    # Event loop
-    while True:
+        log.debug('starting game')
 
-        clear_items()
+        log.debug('initializing screen')
+        self.screen = self._screen_init()
 
-        for event in pygame.event.get():
+        log.debug('getting font')
+        self.font = pygame.font.Font(None, 36)
 
-            if event.type == QUIT:
-                quit_game()
+        log.debug('loading background')
+        self.background = self._get_background()
 
-            if event.type == MOUSEBUTTONDOWN:     # select a piece
-                log.debug('mouse pressed')
-                select_piece(event)
+        log.debug('building initial game board')
+        self._board_setup(brown_spaces=self.brown_spaces)
 
-            if event.type == MOUSEBUTTONUP:     # let go of a piece
-                log.debug('mouse released')
-                drop_piece(event)
+        log.debug('initializing game pieces')
+        for player, x, y in self.game.start_positions():
+            new_piece = PieceSprite(player)
+            self.game.add_piece(new_piece, (x, y))
+            new_piece.update_from_board()
+            self.pieces.add(new_piece)
 
-            if pygame.event.get_grab():          # drag selected piece around
-                log.debug('dragging')
-                drag_piece()
-
-        draw_items()
-
-        fps_clock.tick(60)  # Waits to maintain 60 fps
-
-        # TODO: Use display.update instead
+        log.debug('drawing initial content to screen')
+        self.screen.blit(self.background, ORIGIN)
         pygame.display.flip()
 
+        self.piece_selected = GroupSingle()
+        self.space_selected = GroupSingle()
+        self.current_piece_position = ORIGIN
+
+        self.fps_clock = Clock()
+
+        self._draw_fps()
+
+        # Event loop
+        while True:
+
+            self._clear_items()
+
+            for event in pygame.event.get():
+
+                if event.type == QUIT:
+                    self._quit()
+
+                if event.type == MOUSEBUTTONDOWN:     # select a piece
+                    log.debug('mouse pressed')
+                    self._select_piece(event)
+
+                if event.type == MOUSEBUTTONUP:     # let go of a piece
+                    log.debug('mouse released')
+                    self._drop_piece(event)
+
+                if pygame.event.get_grab():          # drag selected piece around
+                    log.debug('dragging')
+                    self._drag_piece()
+
+            self._draw_items()
+
+            self.fps_clock.tick(60)  # Waits to maintain 60 fps
+
+            # TODO: Use display.update instead
+            pygame.display.flip()
+
 if __name__ == '__main__':
-    main()
+    Game(show_fps=True).run()
