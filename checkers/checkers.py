@@ -120,11 +120,15 @@ class Game:
         self.space_selected = GroupSingle()
         self.current_piece_position = ORIGIN
         self.screen = None
-        self.font = None
         self.fps_clock = None
+        self.font = None
+        self.font_rect = None
         self.background = None
+        self.background_rect = None
         self.fps_text = None
+        self.fps_rect = None
         self.winner_text = None
+        self.winner_rect = None
 
     def _board_setup(self, **kwargs):
         """ initialize board state """
@@ -141,27 +145,25 @@ class Game:
         return self.screen
 
     def _get_background(self):
-        result = pygame.Surface(self.screen.get_size()).convert()
+        result = pygame.Surface(self.screen.get_size())
         (bg_img, bg_rect) = ImageLoader.load_img('marble-board.jpg')
         result.blit(bg_img, bg_rect)
-        return result.convert()
+        return result.convert(), bg_rect
 
     def _get_fps_text(self):
         fps_text = self.font.render("%4.1f fps" % self.fps_clock.get_fps(), True, WHITE)
         rect = fps_text.get_rect()
-        background_rect = self.background.get_rect()
-        rect.right, rect.bottom = background_rect.right, background_rect.bottom
+        rect.right, rect.bottom = self.background_rect.right, self.background_rect.bottom
         return fps_text, rect
 
     def _draw_fps(self):
         if self.show_fps:
-            self.fps_text, fps_rect = self._get_fps_text()
-            self.screen.blit(self.fps_text, fps_rect, area=fps_rect)
+            self.fps_text, self.fps_rect = self._get_fps_text()
+            self.screen.blit(self.fps_text, self.fps_rect)
 
     def _clear_fps(self):
         if self.show_fps:
-            fps_rect = self.fps_text.get_rect()
-            self.screen.blit(self.background, fps_rect, area=fps_rect)
+            self.screen.blit(self.background, self.fps_rect, area=self.fps_rect)
 
     def _clear_items(self):
         self._clear_winner()
@@ -173,16 +175,16 @@ class Game:
         winner = self.game.winner()
         if winner:
             self.winner_text = self.font.render("%s wins!" % winner.title(), True, WHITE)
-            winner_text_rect = self.winner_text.get_rect()
-            winner_text_rect.centerx = self.background.get_rect().centerx
-            winner_text_rect.top = 100
-            self.screen.blit(self.winner_text, winner_text_rect, area=winner_text_rect)
+            winner_rect = self.winner_text.get_rect()
+            winner_rect.centerx = self.background.get_rect().centerx
+            winner_rect.top = 100
+            self.winner_rect = winner_rect
+            self.screen.blit(self.winner_text, winner_rect)
 
     def _clear_winner(self):
         winner = self.game.winner()
         if winner:
-            winner_rect = self.winner_text.get_rect()
-            self.screen.blit(self.background, winner_rect, area=winner_rect)
+            self.screen.blit(self.background, self.winner_rect, area=self.winner_rect)
 
     def _quit(self):
         log.debug('quitting')
@@ -252,7 +254,7 @@ class Game:
         self.font = pygame.font.Font(None, 36)
 
         log.debug('loading background')
-        self.background = self._get_background()
+        self.background, self.background_rect= self._get_background()
 
         log.debug('building initial game board')
         self._board_setup(brown_spaces=self.brown_spaces)
@@ -306,4 +308,4 @@ class Game:
             pygame.display.flip()
 
 if __name__ == '__main__':
-    Game(show_fps=True).run()
+    Game().run()
