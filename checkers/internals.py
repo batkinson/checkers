@@ -6,7 +6,7 @@ players = [BLACK, RED]
 opponent = {BLACK: RED, RED: BLACK}
 
 
-class ChessException(Exception):
+class CheckersException(Exception):
 
     """The base exception type for the chess game."""
 
@@ -14,27 +14,27 @@ class ChessException(Exception):
         Exception.__init__(self, message)
 
 
-class InvalidMoveException(ChessException):
+class InvalidMoveException(CheckersException):
 
     """Represents when an attempted move is invalid."""
 
     def __init__(self, message):
-        ChessException.__init__(self, message)
+        CheckersException.__init__(self, message)
 
 
-class InvalidPlacementException(ChessException):
+class InvalidPlacementException(CheckersException):
 
     """Represents an invalid placement of a piece on the board."""
 
     def __init__(self, message):
-        ChessException.__init__(self, message)
+        CheckersException.__init__(self, message)
 
 
 class Piece():
 
     def __init__(self, player):
         if player not in [BLACK, RED]:
-            raise ChessException("invalid player %s" % player)
+            raise CheckersException("invalid player %s" % player)
         self.player = player
         self.king = False
         self.board = None
@@ -94,9 +94,9 @@ class Board:
             self._king_jumps[pos] = self._jumps[BLACK][pos] | self._jumps[RED][pos]
 
     def add_piece(self, piece, location):
-        """Adds a new Piece to this board. Raises a ChessException if placement is invalid."""
+        """Adds a new Piece to this board. Raises a CheckersException if placement is invalid."""
         if not isinstance(piece, Piece):
-            raise ChessException('can only add Pieces')
+            raise CheckersException('can only add Pieces')
         if not self._valid_placement(piece, location):
             raise InvalidPlacementException('can not place piece at %s' % location)
         self[location] = piece
@@ -137,7 +137,7 @@ class Board:
         """Sets the piece occupying the position specified by the tuple (x,y)
         to the specified player"""
         if piece.player not in players:
-            raise ChessException('Piece doe not belong to a player')
+            raise CheckersException('Piece doe not belong to a player')
         if piece in self._player_pieces:
             self._player_pieces.pop(piece)
         if piece in self._loc_pieces.values():
