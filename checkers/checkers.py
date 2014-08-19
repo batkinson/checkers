@@ -14,7 +14,6 @@ from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 from pygame.time import Clock
 from internals import Board, Piece, RED, BLACK, InvalidMoveException
 
-BROWN = (143, 96, 40)
 WHITE = (255, 255, 255)
 TILE_WIDTH = 75
 BORDER_WIDTH = 50
@@ -59,9 +58,9 @@ class PieceSprite(Piece, Sprite):
         screen = pygame.display.get_surface()
         self.area = screen.get_rect()
         if player == RED:
-            self.image, self.rect = ImageLoader.load_img('red-piece.png', BROWN)
+            self.image, self.rect = ImageLoader.load_img('red-piece.png')
         elif player == BLACK:
-            self.image, self.rect = ImageLoader.load_img('black-piece.png', BROWN)
+            self.image, self.rect = ImageLoader.load_img('black-piece.png')
         else:
             print 'Invalid player name: ', player
             raise SystemExit
@@ -74,9 +73,9 @@ class PieceSprite(Piece, Sprite):
             # This needs to happen before the rect update below because rect is replaced by image load
             self.type = "king"
             if self.player == RED:
-                self.image, self.rect = ImageLoader.load_img('red-piece-king.png', BROWN)
+                self.image, self.rect = ImageLoader.load_img('red-piece-king.png')
             elif self.player == BLACK:
-                self.image, self.rect = ImageLoader.load_img('black-piece-king.png', BROWN)
+                self.image, self.rect = ImageLoader.load_img('black-piece-king.png')
 
         self.rect.centerx = TILE_WIDTH * self.location[0] + (TILE_WIDTH / 2) + (BORDER_WIDTH / 2)
         self.rect.centery = TILE_WIDTH * self.location[1] + (TILE_WIDTH / 2) + (BORDER_WIDTH / 2)
