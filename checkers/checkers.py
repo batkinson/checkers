@@ -95,8 +95,9 @@ class Square(Rect):
 
 class Game:
 
-    def __init__(self, title='Checkers', log_level=log.INFO, show_fps=False):
+    def __init__(self, title='Checkers', log_level=log.INFO, log_drag=False, show_fps=False):
         log.basicConfig(level=log_level)
+        self.log_drag = log_drag
         self.show_fps = show_fps
         self.window_title = title
         self.game = Board(BOARD_DIM)
@@ -206,7 +207,8 @@ class Game:
     def _drag_piece(self):
         #  Until button is let go, move the piece with the mouse position
         self.piece_selected.update(pygame.mouse.get_pos())
-        log.debug('updated piece to %s', pygame.mouse.get_pos())
+        if self.log_drag:
+            log.debug('updated piece to %s', pygame.mouse.get_pos())
 
     def _drop_piece(self, event):
         if pygame.event.get_grab():
@@ -295,7 +297,8 @@ class Game:
                     self._drop_piece(event)
 
                 if pygame.event.get_grab():          # drag selected piece around
-                    log.debug('dragging')
+                    if self.log_drag:
+                        log.debug('dragging')
                     self._drag_piece()
 
             self._draw_items()
