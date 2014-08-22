@@ -32,7 +32,7 @@ def game_to_screen(game_x_or_y, center=True):
 
 def load_img(name, color_key=None):
     """ Load image and return image object"""
-    fullname = os.path.join('../images', name)
+    fullname = os.path.join('..', 'images', name)
     log.debug('loading: %s', fullname)
     try:
         image = pygame.image.load(fullname)
