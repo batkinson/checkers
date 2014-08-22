@@ -198,7 +198,7 @@ class Board:
         return False
 
     def _possible_jump_from(self, source):
-        """Returns whether the current player can jump from a given location."""
+        """Returns whether there is a valid jump from a given location."""
         if not source in self:
             return False
 
@@ -215,7 +215,7 @@ class Board:
         return False
 
     def _possible_jump(self, player):
-        """Returns whether the current player has a possible jump."""
+        """Returns whether the player has a possible jump."""
         for p in self._player_pieces[player]:
             if self._possible_jump_from(p.location):
                 return True
