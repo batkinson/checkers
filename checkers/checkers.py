@@ -309,4 +309,4 @@ class Game:
             pygame.display.flip()
 
 if __name__ == '__main__':
-    Game().run()
+    Game(log_level=log.DEBUG).run()
