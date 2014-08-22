@@ -221,6 +221,17 @@ class Board:
                 return True
         return False
 
+    def _king_piece(self, piece):
+        """Kings the given piece based on its player and location on board."""
+        if not piece.king and (piece.player == RED and piece.location[1] == 0
+                               or piece.player == BLACK and piece.location[1] == self.dim - 1):
+            piece.king = True
+
+    def _update_turn(self):
+        """Update the turn if it is possible for opponent to play."""
+        if not self.last_jump_target or not self._possible_jump_from(self.last_jump_target):
+            self.turn = opponent[self.turn]
+
     def _perform_move(self, source, target):
         """Remove the captured piece and return location, or None if not a capture. Should have already validated as
         valid move with _valid_move before calling this."""
@@ -244,15 +255,8 @@ class Board:
         self._loc_pieces.pop(source, None)  # Remove piece from original location
         self._loc_pieces[target] = piece
         piece.location = target
-        # King the piece if it moved into king row
-        if not piece.king:
-            if player == RED:
-                piece.king = piece.location[1] == 0
-            elif player == BLACK:
-                piece.king = piece.location[1] == self.dim - 1
-        # Update the turn if it changed
-        if not self.last_jump_target or not self._possible_jump_from(self.last_jump_target):
-            self.turn = opponent[self.turn]
+        self._king_piece(piece)
+        self._update_turn()
         return result
 
     def move(self, source, target):
