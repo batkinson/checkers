@@ -221,6 +221,30 @@ class Board:
                 return True
         return False
 
+    def _possible_move_from(self, source):
+        """Returns whether there is any valid move (jump or move) from a given location."""
+        if not source in self:
+            return False
+
+        piece = self[source]
+
+        if piece.king:
+            move_targets = self._king_moves[source]
+        else:
+            move_targets = self._moves[piece.player][source]
+
+        for target in move_targets:
+            if self._valid_move(source, target):
+                return True
+        return self._possible_jump_from(source)
+
+    def _possible_move(self, player):
+        """Returns whether the player has any possible move."""
+        for p in self._player_pieces[player]:
+            if self._possible_move_from(p.location):
+                return True
+        return False
+
     def _king_piece(self, piece):
         """Kings the given piece based on its player and location on board."""
         if not piece.king and (piece.player == RED and piece.location[1] == 0
@@ -228,8 +252,9 @@ class Board:
             piece.king = True
 
     def _update_turn(self):
-        """Update the turn if it is possible for opponent to play."""
-        if not self.last_jump_target or not self._possible_jump_from(self.last_jump_target):
+        """Update the turn if no more jumps are required and it is possible for opponent to play."""
+        if (not (self.last_jump_target and self._possible_jump_from(self.last_jump_target))) \
+                and self._possible_move(opponent[self.turn]):
             self.turn = opponent[self.turn]
 
     def _perform_move(self, source, target):
