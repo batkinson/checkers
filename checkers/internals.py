@@ -280,8 +280,8 @@ class Board:
         self._loc_pieces.pop(source, None)  # Remove piece from original location
         self._loc_pieces[target] = piece
         piece.location = target
-        self._king_piece(piece)
         self._update_turn()
+        self._king_piece(piece)  # Only king after figuring out turn to prevent continued jumping
         return result
 
     def move(self, source, target):
