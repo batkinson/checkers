@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 #
-# Clare's Checkers
-# A simple checkers game
+# Checkers - a simple checkers, adapted from Clare's checkers
 #
 # Released under the GNU General Public License
 
