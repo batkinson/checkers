@@ -178,15 +178,14 @@ class Game:
             turn_text = self.font.render("%s's turn" % self.game.turn.title(), True, WHITE)
             turn_rect = turn_text.get_rect()
             turn_rect.centerx, turn_rect.centery = self.background_rect.centerx, self.background_rect.centery
+            self.screen.blit(turn_text, turn_rect)
         else:
             turn_text, turn_rect = None, None
         self.turn_text, self.turn_rect = turn_text, turn_rect
-        self.screen.blit(turn_text, turn_rect)
 
     def _clear_turn(self):
         if self.turn_rect:
             self.screen.blit(self.background, self.turn_rect, area=self.turn_rect)
-
 
     def _quit(self):
         log.debug('quitting')
@@ -243,7 +242,6 @@ class Game:
         self.piece_selected.draw(self.screen)
         self._draw_winner()
         self._draw_fps()
-
 
     def run(self):
 
