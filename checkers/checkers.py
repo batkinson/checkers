@@ -9,6 +9,7 @@ import os
 import sys
 import logging as log
 import pygame
+from pygame import Rect
 from pygame.sprite import Sprite, RenderUpdates, GroupSingle
 from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 from pygame.time import Clock
@@ -22,30 +23,27 @@ SCREEN_RES = (650, 650)
 ORIGIN = (0, 0)
 
 
-class ImageLoader:
+def game_to_screen(game_x_or_y):
+    """Translates the abstract game grid coordinates to screen coordinates."""
+    return TILE_WIDTH * game_x_or_y + (TILE_WIDTH / 2) + (BORDER_WIDTH / 2)
 
-    """Loads image resources."""
 
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def load_img(name, color_key=None):
-        """ Load image and return image object"""
-        fullname = os.path.join('../images', name)
-        log.debug('loading: %s', fullname)
-        try:
-            image = pygame.image.load(fullname)
-            if color_key:
-                image.set_colorkey(color_key)   # make all brown transparent
-            if image.get_alpha() is None:
-                image = image.convert()
-            else:
-                image = image.convert_alpha()
-            return image, image.get_rect()
-        except pygame.error, message:
-            log.exception('failed to load image %s: %s', fullname, message)
-            raise SystemExit
+def load_img(name, color_key=None):
+    """ Load image and return image object"""
+    fullname = os.path.join('../images', name)
+    log.debug('loading: %s', fullname)
+    try:
+        image = pygame.image.load(fullname)
+        if color_key:
+            image.set_colorkey(color_key)   # make all brown transparent
+        if image.get_alpha() is None:
+            image = image.convert()
+        else:
+            image = image.convert_alpha()
+        return image, image.get_rect()
+    except pygame.error, message:
+        log.exception('failed to load image %s: %s', fullname, message)
+        raise SystemExit
 
 
 class PieceSprite(Piece, Sprite):
@@ -58,9 +56,9 @@ class PieceSprite(Piece, Sprite):
         screen = pygame.display.get_surface()
         self.area = screen.get_rect()
         if player == RED:
-            self.image, self.rect = ImageLoader.load_img('red-piece.png')
+            self.image, self.rect = load_img('red-piece.png')
         elif player == BLACK:
-            self.image, self.rect = ImageLoader.load_img('black-piece.png')
+            self.image, self.rect = load_img('black-piece.png')
         else:
             print 'Invalid player name: ', player
             raise SystemExit
@@ -73,36 +71,25 @@ class PieceSprite(Piece, Sprite):
             # This needs to happen before the rect update below because rect is replaced by image load
             self.type = "king"
             if self.player == RED:
-                self.image, self.rect = ImageLoader.load_img('red-piece-king.png')
+                self.image, self.rect = load_img('red-piece-king.png')
             elif self.player == BLACK:
-                self.image, self.rect = ImageLoader.load_img('black-piece-king.png')
+                self.image, self.rect = load_img('black-piece-king.png')
 
-        self.rect.centerx = TILE_WIDTH * self.location[0] + (TILE_WIDTH / 2) + (BORDER_WIDTH / 2)
-        self.rect.centery = TILE_WIDTH * self.location[1] + (TILE_WIDTH / 2) + (BORDER_WIDTH / 2)
+        self.rect.centerx, self.rect.centery = [game_to_screen(v) for v in self.location]
 
     def update(self, position):
         self.rect.centerx, self.rect.centery = position
 
 
-class SquareSprite(Sprite):
+class Square(Rect):
 
-    """A sprite abstraction for game board spaces."""
+    """An abstraction for game board spaces."""
 
-    def __init__(self, initial_position, color, row, col):
-        Sprite.__init__(self)
-        screen = pygame.display.get_surface()
-        self.area = screen.get_rect()
-        self.color = color
+    def __init__(self, row, col):
+        self.x, self.y = TILE_WIDTH * col + (BORDER_WIDTH / 2), TILE_WIDTH * row + (BORDER_WIDTH / 2)
+        self.width, self.height = TILE_WIDTH, TILE_WIDTH
         self.row = row
         self.col = col
-        if color == "brown":
-            self.image, self.rect = ImageLoader.load_img('brown-space.png')
-        elif color == "tan":
-            self.image, self.rect = ImageLoader.load_img('tan-space.png')
-        else:
-            print 'Invalid space color: ', color
-            raise SystemExit
-        self.rect.topleft = initial_position
 
 
 class Game:
@@ -113,10 +100,9 @@ class Game:
         self.window_title = title
         self.game = Board(BOARD_DIM)
         # Initialize Game Groups
-        self.brown_spaces = RenderUpdates()
+        self.board_spaces = set()
         self.pieces = RenderUpdates()
         self.piece_selected = GroupSingle()
-        self.space_selected = GroupSingle()
         self.current_piece_position = ORIGIN
         self.screen = None
         self.fps_clock = None
@@ -131,10 +117,8 @@ class Game:
 
     def _board_setup(self, **kwargs):
         """ initialize board state """
-        brown_spaces = kwargs.get('brown_spaces')
         for col, row in self.game.usable_positions():
-            loc = TILE_WIDTH * col + (BORDER_WIDTH / 2), TILE_WIDTH * row + (BORDER_WIDTH / 2)
-            brown_spaces.add(SquareSprite(loc, "brown", row, col))
+            self.board_spaces.add(Square(row, col))
 
     def _screen_init(self):
         """ Initialise screen """
@@ -145,7 +129,7 @@ class Game:
 
     def _get_background(self):
         result = pygame.Surface(self.screen.get_size())
-        (bg_img, bg_rect) = ImageLoader.load_img('marble-board.jpg')
+        (bg_img, bg_rect) = load_img('marble-board.jpg')
         result.blit(bg_img, bg_rect)
         return result.convert(), bg_rect
 
@@ -212,12 +196,12 @@ class Game:
             log.debug('releasing input')
 
             # center the piece on the valid space; if it is not touching a space, return it to its original position
-            self.space_selected.add(space for space in self.brown_spaces
-                                    if space.rect.collidepoint(event.pos))
+            space_selected = [space for space in self.board_spaces
+                                    if space.collidepoint(event.pos)]
 
-            if self.piece_selected and self.space_selected:
+            if self.piece_selected and space_selected:
                 log.debug('dropped a piece')
-                piece, space = self.piece_selected.sprite, self.space_selected.sprite
+                piece, space = self.piece_selected.sprite, space_selected[0]
                 try:
                     captured = self.game.move(piece.location, (space.col, space.row))
                     if captured:
@@ -233,7 +217,6 @@ class Game:
 
             # clean up for the next selected piece
             self.piece_selected.empty()
-            self.space_selected.empty()
 
     def _draw_items(self):
         self.pieces.draw(self.screen)
@@ -256,7 +239,7 @@ class Game:
         self.background, self.background_rect= self._get_background()
 
         log.debug('building initial game board')
-        self._board_setup(brown_spaces=self.brown_spaces)
+        self._board_setup(brown_spaces=self.board_spaces)
 
         log.debug('initializing game pieces')
         for player, x, y in self.game.start_positions():
@@ -270,7 +253,6 @@ class Game:
         pygame.display.flip()
 
         self.piece_selected = GroupSingle()
-        self.space_selected = GroupSingle()
         self.current_piece_position = ORIGIN
 
         self.fps_clock = Clock()
