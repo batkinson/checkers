@@ -206,7 +206,10 @@ class Board:
 
     def _possible_jump_from(self, loc):
         """Returns whether the current player can jump from a given location."""
+        # Consider the piece type and look at king jumps
         jump_targets = self._jumps[self.turn][loc]
+        if self[loc].king:
+            jump_targets = self._king_jumps[loc]
         for target in jump_targets:
             if self._valid_jump(loc, target):
                 return True
