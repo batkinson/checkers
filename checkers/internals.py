@@ -168,16 +168,12 @@ class Board:
 
         piece = self[source]
         player = piece.player
-
-        if self.turn != player:
-            return False
-
         moves = self._moves[player]
 
         if piece.king:
             moves = self._king_moves
 
-        return (target in moves[source] and not self._possible_jump()) or self._valid_jump(source, target)
+        return (not self._possible_jump(player) and target in moves[source]) or self._valid_jump(source, target)
 
     def _valid_jump(self, source, target):
         """Returns whether the move from source to target is a valid jump."""
@@ -188,9 +184,6 @@ class Board:
 
         piece = self[source]
         player = piece.player
-
-        if self.turn != player:
-            return False
 
         jumps = self._jumps[player]
 
@@ -204,20 +197,26 @@ class Board:
 
         return False
 
-    def _possible_jump_from(self, loc):
+    def _possible_jump_from(self, source):
         """Returns whether the current player can jump from a given location."""
-        # Consider the piece type and look at king jumps
-        jump_targets = self._jumps[self.turn][loc]
-        if self[loc].king:
-            jump_targets = self._king_jumps[loc]
+        if not source in self:
+            return False
+
+        piece = self[source]
+
+        if piece.king:
+            jump_targets = self._king_jumps[source]
+        else:
+            jump_targets = self._jumps[piece.player][source]
+
         for target in jump_targets:
-            if self._valid_jump(loc, target):
+            if self._valid_jump(source, target):
                 return True
         return False
 
-    def _possible_jump(self):
+    def _possible_jump(self, player):
         """Returns whether the current player has a possible jump."""
-        for p in self._player_pieces[self.turn]:
+        for p in self._player_pieces[player]:
             if self._possible_jump_from(p.location):
                 return True
         return False
@@ -259,7 +258,7 @@ class Board:
     def move(self, source, target):
         """Moves the piece at source position to target and returns None or the location of a captured piece.
         It throws a InvalidMoveError if the move is not valid."""
-        if not self._valid_move(source, target):
+        if self.turn != self[source].player or not self._valid_move(source, target):
             raise InvalidMoveException("invalid move from %s to %s" % (source, target))
         return self._perform_move(source, target)
 
