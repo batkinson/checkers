@@ -214,8 +214,7 @@ class Game:
             log.debug('releasing input')
 
             # center the piece on the valid space; if it is not touching a space, return it to its original position
-            space_selected = [space for space in self.board_spaces
-                                    if space.collidepoint(event.pos)]
+            space_selected = [space for space in self.board_spaces if space.collidepoint(event.pos)]
 
             if self.piece_selected and space_selected:
                 log.debug('dropped a piece')
