@@ -66,6 +66,8 @@ class Board:
         # Mutable data
         self._player_pieces = {BLACK: set(), RED: set()}
         self._loc_pieces = {}
+        self.turn = BLACK
+        self.last_jumped_to = None
 
     def _init_moves(self):
 
@@ -160,6 +162,25 @@ class Board:
 
     def _valid_move(self, source, target):
         """Returns whether the move from source to target is a valid move."""
+        # Not valid move if the source isn't occupied or target is occupied
+        if not source in self or target in self:
+            return False
+
+        piece = self[source]
+        player = piece.player
+
+        if self.turn != player:
+            return False
+
+        moves = self._moves[player]
+
+        if piece.king:
+            moves = self._king_moves
+
+        return (target in moves[source] and not self._possible_jump()) or self._valid_jump(source, target)
+
+    def _valid_jump(self, source, target):
+        """Returns whether the move from source to target is a valid jump."""
         move = (source, target)
         # Not valid move if the source isn't occupied or target is occupied
         if not source in self or target in self:
@@ -167,21 +188,38 @@ class Board:
 
         piece = self[source]
         player = piece.player
-        moves, jumps = self._moves[player], self._jumps[player]
+
+        if self.turn != player:
+            return False
+
+        jumps = self._jumps[player]
 
         if piece.king:
-            moves, jumps = self._king_moves, self._king_jumps
+            jumps = self._king_jumps
 
-        if target in moves[source]:
-            return True
-        elif target in jumps[source] and move in self._captures:
+        if target in jumps[source] and move in self._captures:
             capture = self._captures[move]
             if capture in self and self[capture].player == opponent[player]:
                 return True
 
         return False
 
-    def _move_and_capture(self, source, target):
+    def _possible_jump_from(self, loc):
+        """Returns whether the current player can jump from a given location."""
+        jump_targets = self._jumps[self.turn][loc]
+        for target in jump_targets:
+            if self._valid_jump(loc, target):
+                return True
+        return False
+
+    def _possible_jump(self):
+        """Returns whether the current player has a possible jump."""
+        for p in self._player_pieces[self.turn]:
+            if self._possible_jump_from(p.location):
+                return True
+        return False
+
+    def _perform_move(self, source, target):
         """Remove the captured piece and return location, or None if not a capture. Should have already validated as
         valid move with _valid_move before calling this."""
         result = None
@@ -197,15 +235,22 @@ class Board:
             self._loc_pieces.pop(capture)  # Remove captured piece from board
             captured_piece.location = None  # Captured piece will no longer have a location
             result = captured_piece
+            self.last_jump_target = target
+        else:
+            self.last_jump_target = None
         # Move piece to target destination
         self._loc_pieces.pop(source, None)  # Remove piece from original location
         self._loc_pieces[target] = piece
         piece.location = target
+        # King the piece if it moved into king row
         if not piece.king:
             if player == RED:
                 piece.king = piece.location[1] == 0
             elif player == BLACK:
                 piece.king = piece.location[1] == self.dim - 1
+        # Update the turn if it changed
+        if not self.last_jump_target or not self._possible_jump_from(self.last_jump_target):
+            self.turn = opponent[self.turn]
         return result
 
     def move(self, source, target):
@@ -213,12 +258,7 @@ class Board:
         It throws a InvalidMoveError if the move is not valid."""
         if not self._valid_move(source, target):
             raise InvalidMoveException("invalid move from %s to %s" % (source, target))
-        return self._move_and_capture(source, target)
-
-    def turn_over(self, player):
-        """Returns whether the player's turn is over. This can be used to determine whether to allow multiple
-        consecutive turns, such as when jumping multiple pieces."""
-        return True
+        return self._perform_move(source, target)
 
     def __str__(self):
         """Returns the board in string form."""
