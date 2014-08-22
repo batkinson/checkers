@@ -227,7 +227,7 @@ class Game:
                         self.pieces.remove(captured)
                 except InvalidMoveException as ce:
                     log.debug(ce)
-                log.debug("%s", str(self.game))
+                log.debug("board after drop:\n%s", str(self.game))
 
             self.piece_selected.sprite.update_from_board()
 
