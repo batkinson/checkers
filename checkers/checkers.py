@@ -23,9 +23,12 @@ SCREEN_RES = (650, 650)
 ORIGIN = (0, 0)
 
 
-def game_to_screen(game_x_or_y):
+def game_to_screen(game_x_or_y, center=True):
     """Translates the abstract game grid coordinates to screen coordinates."""
-    return TILE_WIDTH * game_x_or_y + (TILE_WIDTH / 2) + (BORDER_WIDTH / 2)
+    grid_coord = TILE_WIDTH * game_x_or_y + (BORDER_WIDTH / 2)
+    if center:
+        grid_coord += (TILE_WIDTH / 2)
+    return grid_coord
 
 
 def load_img(name, color_key=None):
@@ -86,10 +89,9 @@ class Square(Rect):
     """An abstraction for game board spaces."""
 
     def __init__(self, row, col):
-        self.x, self.y = TILE_WIDTH * col + (BORDER_WIDTH / 2), TILE_WIDTH * row + (BORDER_WIDTH / 2)
+        self.row, self.col = row, col
+        self.x, self.y = [game_to_screen(v, False) for v in (col, row)]
         self.width, self.height = TILE_WIDTH, TILE_WIDTH
-        self.row = row
-        self.col = col
 
 
 class Game:
