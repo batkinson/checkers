@@ -115,6 +115,8 @@ class Game:
         self.fps_rect = None
         self.winner_text = None
         self.winner_rect = None
+        self.turn_text = None
+        self.turn_rect = None
 
     def _board_setup(self, **kwargs):
         """ initialize board state """
@@ -150,9 +152,10 @@ class Game:
             self.screen.blit(self.background, self.fps_rect, area=self.fps_rect)
 
     def _clear_items(self):
-        self._clear_winner()
         self._clear_fps()
+        self._clear_winner()
         self.piece_selected.clear(self.screen, self.background)
+        self._clear_turn()
         self.pieces.clear(self.screen, self.background)
 
     def _draw_winner(self):
@@ -169,6 +172,21 @@ class Game:
         winner = self.game.winner()
         if winner:
             self.screen.blit(self.background, self.winner_rect, area=self.winner_rect)
+
+    def _draw_turn(self):
+        if not self.game.winner():
+            turn_text = self.font.render("%s's turn" % self.game.turn.title(), True, WHITE)
+            turn_rect = turn_text.get_rect()
+            turn_rect.centerx, turn_rect.centery = self.background_rect.centerx, self.background_rect.centery
+        else:
+            turn_text, turn_rect = None, None
+        self.turn_text, self.turn_rect = turn_text, turn_rect
+        self.screen.blit(turn_text, turn_rect)
+
+    def _clear_turn(self):
+        if self.turn_rect:
+            self.screen.blit(self.background, self.turn_rect, area=self.turn_rect)
+
 
     def _quit(self):
         log.debug('quitting')
@@ -221,6 +239,7 @@ class Game:
 
     def _draw_items(self):
         self.pieces.draw(self.screen)
+        self._draw_turn()
         self.piece_selected.draw(self.screen)
         self._draw_winner()
         self._draw_fps()
