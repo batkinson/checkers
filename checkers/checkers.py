@@ -21,6 +21,8 @@ BOARD_DIM = 8
 SCREEN_RES = (650, 650)
 ORIGIN = (0, 0)
 
+image_cache = {}
+
 
 def game_to_screen(game_x_or_y, center=True):
     """Translates the abstract game grid coordinates to screen coordinates."""
@@ -33,8 +35,10 @@ def game_to_screen(game_x_or_y, center=True):
 def load_img(name, color_key=None):
     """ Load image and return image object"""
     fullname = os.path.join('..', 'images', name)
-    log.debug('loading: %s', fullname)
+    if fullname in image_cache:
+        return image_cache[fullname], image_cache[fullname].get_rect()
     try:
+        log.debug('loading: %s', fullname)
         image = pygame.image.load(fullname)
         if color_key:
             image.set_colorkey(color_key)   # make all brown transparent
@@ -42,6 +46,7 @@ def load_img(name, color_key=None):
             image = image.convert()
         else:
             image = image.convert_alpha()
+        image_cache[fullname] = image
         return image, image.get_rect()
     except pygame.error, message:
         log.exception('failed to load image %s: %s', fullname, message)
