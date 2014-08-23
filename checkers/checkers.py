@@ -9,6 +9,7 @@ import sys
 import logging as log
 import pygame
 from pygame import Rect
+from pygame import mixer
 from pygame.sprite import Sprite, RenderUpdates, GroupSingle
 from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 from pygame.time import Clock
@@ -54,6 +55,23 @@ class Images:
         except pygame.error, message:
             log.exception('failed to load image %s: %s', fullname, message)
             raise SystemExit
+
+
+class Sounds:
+
+    sound_cache = {}
+
+    @classmethod
+    def play(cls, name):
+        """Loads a sound and plays it immediately."""
+        fullname = os.path.join('..', 'sounds', name)
+        if fullname in cls.sound_cache:
+            cls.sound_cache[fullname].play()
+        else:
+            log.debug('loading: %s', fullname)
+            sound = pygame.mixer.Sound(fullname)
+            cls.sound_cache[fullname] = sound
+            sound.play()
 
 
 class PieceSprite(Piece, Sprite):
@@ -134,7 +152,6 @@ class Game:
 
     def _screen_init(self):
         """ Initialise screen """
-        pygame.init()
         self.screen = pygame.display.set_mode(SCREEN_RES)
         pygame.display.set_caption(self.window_title)
         return self.screen
@@ -211,6 +228,7 @@ class Game:
             self.current_piece_position = (self.piece_selected.sprite.rect.centerx,
                                            self.piece_selected.sprite.rect.centery)
             log.debug('grabbing input, picked up piece at %s', self.current_piece_position)
+            Sounds.play('slide.ogg')
 
     def _drag_piece(self):
         #  Until button is let go, move the piece with the mouse position
@@ -233,6 +251,7 @@ class Game:
                     captured = self.game.move(piece.location, (space.col, space.row))
                     if captured:
                         self.pieces.remove(captured)
+                    Sounds.play('slap.ogg')
                 except InvalidMoveException as ce:
                     log.debug(ce)
                 log.debug("board after drop:\n%s", str(self.game))
@@ -254,7 +273,11 @@ class Game:
 
     def run(self):
 
+        log.debug('pre-initializing sound')
+        mixer.pre_init(buffer=32)
+
         log.debug('starting game')
+        pygame.init()
 
         log.debug('initializing screen')
         self.screen = self._screen_init()
