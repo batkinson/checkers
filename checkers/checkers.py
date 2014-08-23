@@ -21,8 +21,6 @@ BOARD_DIM = 8
 SCREEN_RES = (650, 650)
 ORIGIN = (0, 0)
 
-image_cache = {}
-
 
 def game_to_screen(game_x_or_y, center=True):
     """Translates the abstract game grid coordinates to screen coordinates."""
@@ -32,25 +30,30 @@ def game_to_screen(game_x_or_y, center=True):
     return grid_coord
 
 
-def load_img(name, color_key=None):
-    """ Load image and return image object"""
-    fullname = os.path.join('..', 'images', name)
-    if fullname in image_cache:
-        return image_cache[fullname], image_cache[fullname].get_rect()
-    try:
-        log.debug('loading: %s', fullname)
-        image = pygame.image.load(fullname)
-        if color_key:
-            image.set_colorkey(color_key)   # make all brown transparent
-        if image.get_alpha() is None:
-            image = image.convert()
-        else:
-            image = image.convert_alpha()
-        image_cache[fullname] = image
-        return image, image.get_rect()
-    except pygame.error, message:
-        log.exception('failed to load image %s: %s', fullname, message)
-        raise SystemExit
+class Images:
+
+    image_cache = {}
+
+    @classmethod
+    def load(cls, name, color_key=None):
+        """ Load image and return image object"""
+        fullname = os.path.join('..', 'images', name)
+        if fullname in cls.image_cache:
+            return cls.image_cache[fullname], cls.image_cache[fullname].get_rect()
+        try:
+            log.debug('loading: %s', fullname)
+            image = pygame.image.load(fullname)
+            if color_key:
+                image.set_colorkey(color_key)   # make all brown transparent
+            if image.get_alpha() is None:
+                image = image.convert()
+            else:
+                image = image.convert_alpha()
+            cls.image_cache[fullname] = image
+            return image, image.get_rect()
+        except pygame.error, message:
+            log.exception('failed to load image %s: %s', fullname, message)
+            raise SystemExit
 
 
 class PieceSprite(Piece, Sprite):
@@ -63,9 +66,9 @@ class PieceSprite(Piece, Sprite):
         screen = pygame.display.get_surface()
         self.area = screen.get_rect()
         if player == RED:
-            self.image, self.rect = load_img('red-piece.png')
+            self.image, self.rect = Images.load('red-piece.png')
         elif player == BLACK:
-            self.image, self.rect = load_img('black-piece.png')
+            self.image, self.rect = Images.load('black-piece.png')
         else:
             print 'Invalid player name: ', player
             raise SystemExit
@@ -78,9 +81,9 @@ class PieceSprite(Piece, Sprite):
             # This needs to happen before the rect update below because rect is replaced by image load
             self.type = "king"
             if self.player == RED:
-                self.image, self.rect = load_img('red-piece-king.png')
+                self.image, self.rect = Images.load('red-piece-king.png')
             elif self.player == BLACK:
-                self.image, self.rect = load_img('black-piece-king.png')
+                self.image, self.rect = Images.load('black-piece-king.png')
 
         self.rect.centerx, self.rect.centery = [game_to_screen(v) for v in self.location]
 
@@ -138,7 +141,7 @@ class Game:
 
     def _get_background(self):
         result = pygame.Surface(self.screen.get_size())
-        (bg_img, bg_rect) = load_img('marble-board.jpg')
+        (bg_img, bg_rect) = Images.load('marble-board.jpg')
         result.blit(bg_img, bg_rect)
         return result.convert(), bg_rect
 
