@@ -31,3 +31,7 @@ class TestCheckers(TestCase):
         p = Piece(RED)
         self.state[(7, 0)] = p
         self.assertEqual(self.state[(7, 0)], p, "Top right corner should be red after setting")
+
+    def test_from_str(self):
+        expected = "*b*b*b*b\nb*b*b*b*\n*b*B*b*b\n********\n********\nr*r*R*r*\n*r*r*r*r\nr*r*r*r*\n"
+        self.assertEqual(expected, str(Board.from_str(expected)))

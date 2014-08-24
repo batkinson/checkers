@@ -69,6 +69,26 @@ class Board:
         self.turn = BLACK
         self.last_jumped_to = None
 
+    @staticmethod
+    def from_str(board_str):
+        """Returns an initialized board from a string representation."""
+        lines = board_str.split()
+        dim = len(lines[0])
+        board = Board(dim)
+        for row, line in enumerate(lines):
+            for col, c in enumerate(line):
+                loc = (col, row)
+                p = None
+                if c.lower() == 'r':
+                    p = Piece(RED)
+                elif c.lower() == 'b':
+                    p = Piece(BLACK)
+                if c == 'R' or c == 'B':
+                        p.king = True
+                if p:
+                    board.add_piece(p, loc)
+        return board
+
     def _init_moves(self):
 
         for pos in self.usable_positions():
