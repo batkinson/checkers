@@ -18,7 +18,6 @@ from internals import Board, Piece, RED, BLACK, InvalidMoveException
 WHITE = (255, 255, 255)
 TILE_WIDTH = 75
 BORDER_WIDTH = 50
-BOARD_DIM = 8
 SCREEN_RES = (650, 650)
 ORIGIN = (0, 0)
 
@@ -126,7 +125,7 @@ class Game:
         self.log_drag = log_drag
         self.show_fps = show_fps
         self.window_title = title
-        self.game = Board(BOARD_DIM)
+        self.game = Board()
         # Initialize Game Groups
         self.board_spaces = set()
         self.pieces = RenderUpdates()

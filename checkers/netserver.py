@@ -1,5 +1,5 @@
 from SocketServer import ThreadingTCPServer, StreamRequestHandler
-from internals import RED, BLACK, Board, Piece, CheckersException
+from internals import RED, BLACK, Board, Piece, CheckersException, opponent
 from threading import RLock
 import logging as log
 
@@ -7,10 +7,10 @@ import logging as log
 LIST, JOIN, NEW, LEAVE, QUIT, MOVE, SHUTDOWN, TURN, BOARD = 'LIST', 'JOIN', 'NEW', 'LEAVE', 'QUIT', 'MOVE', 'SHUTDOWN',\
                                                             'TURN', 'BOARD'
 ERROR, OK, STATUS = 'ERROR', 'OK', 'STATUS'
-JOINED, LEFT, MOVED, KING, WAIT, WINNER = 'JOINED', 'LEFT', 'MOVED', 'KING', 'waiting', 'WINNER'
+JOINED, YOU_ARE, LEFT, MOVED, KING, WAIT, WINNER = 'JOINED', 'YOU_ARE', 'LEFT', 'MOVED', 'KING', 'waiting', 'WINNER'
 
-COMMANDS = set([LIST, JOIN, NEW, LEAVE, QUIT, MOVE, BOARD, SHUTDOWN, TURN])
-STATUSES = set([JOINED, LEFT, MOVED, WINNER])
+COMMANDS = set([LIST, JOIN, NEW, LEAVE, QUIT, MOVE, BOARD, TURN, SHUTDOWN])
+STATUSES = set([JOINED, LEFT, MOVED, WINNER, YOU_ARE, BOARD, TURN])
 
 
 class ServerException(Exception):
@@ -45,13 +45,13 @@ class RequestHandler(StreamRequestHandler):
 
             try:
                 if cmd in COMMANDS:
+                    result = [OK]
                     if cmd == QUIT:
                         if game:
                             game.leave(player)
                         break
                     elif not game and cmd == NEW:
                         game, player = self.server.new_game(self)
-                        result = [OK, player, repr(game), game.turn]
                     elif cmd == JOIN:
                         orig_game = None
                         if game:
@@ -60,27 +60,26 @@ class RequestHandler(StreamRequestHandler):
                         game, player = self.server.join_game(game_id, self)
                         if orig_game:
                             orig_game.leave(orig_player)
-                        result = [OK, player, repr(game), game.turn]
                     elif cmd == LIST:
                         games = self.server.get_games()
-                        result = [OK] + [str(g.id) for g in games if not game or game is not g]
+                        self.send_status('STATUS GAME LIST ' + ' '.join(
+                            [str(g.id) for g in games if not game or game is not g]))
                     elif game and cmd == LEAVE:
                         game.leave(player)
                         game = player = None
-                        result = [OK]
                     elif game and cmd == BOARD:
-                        result = [OK, repr(game)]
+                        self.send_status('STATUS BOARD %s' % repr(game))
                     elif game and cmd == MOVE:
                         src, dst = (int(req.pop(0)), int(req.pop(0))), (int(req.pop(0)), int(req.pop(0)))
                         game.make_move(src, dst, player)
-                        result = [OK]
                     elif game and cmd == TURN:
-                        result = [OK, game.turn]
+                        self.send_status('STATUS TURN %s' % game.turn)
                     elif cmd == SHUTDOWN:
                         self.server.shutdown()
-                        result = [OK]
                     else:
-                        result = [ERROR, 'invalid command']
+                        raise ServerException('invalid command')
+                else:
+                    result = [ERROR, 'invalid command']
             except ServerException as error:
                 result = [ERROR, error.message]
 
@@ -110,7 +109,9 @@ class Game:
                 raise ServerException('no available seats')
             open_player = self.open_seats[0]
             self.players[open_player] = player_handler
-            self.send_status(' '.join([STATUS, JOINED, open_player]))
+            self.send_status(' '.join([STATUS, BOARD, repr(self)]), player=open_player)
+            self.send_status(' '.join([STATUS, JOINED, open_player]), player=opponent[open_player])
+            self.send_status(' '.join([STATUS, YOU_ARE, open_player]), player=open_player)
             self.send_status(' '.join([STATUS, TURN, self.turn]))
             return open_player
 
@@ -146,14 +147,17 @@ class Game:
         with self.lock:
             if self.open_seats:
                 raise ServerException('waiting for player')
+            if not src in self.board:
+                raise ServerException('invalid move source')
             if self.board[src].player != player:
                 raise ServerException('not your piece')
             try:
+                was_king = self.board[src].king
                 move_status = [STATUS, MOVED] + [str(i) for i in src] + [str(i) for i in dst]
-                if self.board[src].king:
-                    move_status.append(KING)
                 self.board.move(src, dst)
                 self.send_status(' '.join(move_status))
+                if not was_king and self.board[dst].king:
+                    self.send_status(' '.join([STATUS, KING] + [str(i) for i in dst]))
                 self.send_status(' '.join([STATUS, TURN, self.turn]))
                 if self.winner:
                     self.send_status(' '.join(STATUS, WINNER, self.winner))
