@@ -234,7 +234,7 @@ class Game(StatusHandler):
         if not self.game.winner():
             msg = None
             if self.game.turn not in players:
-                msg = "waiting for player"
+                msg = "Waiting for player"
             else:
                 if self.player == self.game.turn:
                     msg = "Your turn"
