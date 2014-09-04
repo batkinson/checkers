@@ -30,9 +30,19 @@ Then you can re-run the pip install command above to complete the installation.
 
 ## Running
 
-Simply run checkers.py like so:
- 
+Starting the game server is as simple as running:
+
 ```
 cd $CHECKERS_HOME/checkers
-python checkers.py
+./netserver.py
 ```
+
+Once the game server is started you can play games by running:
+
+```
+cd $CHECKERS/checkers
+./checkers.py
+```
+
+By default, the server starts on port 5000 and the game clients try to connect to a game server at 127.0.0.1 on port 
+5000.
