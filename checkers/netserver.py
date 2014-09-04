@@ -7,10 +7,11 @@ import logging as log
 LIST, JOIN, NEW, LEAVE, QUIT, MOVE, SHUTDOWN, TURN, BOARD = 'LIST', 'JOIN', 'NEW', 'LEAVE', 'QUIT', 'MOVE', 'SHUTDOWN',\
                                                             'TURN', 'BOARD'
 ERROR, OK, STATUS = 'ERROR', 'OK', 'STATUS'
-JOINED, YOU_ARE, LEFT, MOVED, KING, WAIT, WINNER = 'JOINED', 'YOU_ARE', 'LEFT', 'MOVED', 'KING', 'waiting', 'WINNER'
+JOINED, YOU_ARE, LEFT, MOVED, CAPTURED, KING, WAIT, WINNER = 'JOINED', 'YOU_ARE', 'LEFT', 'MOVED', 'CAPTURED', 'KING', \
+                                                             'waiting', 'WINNER'
 
 COMMANDS = set([LIST, JOIN, NEW, LEAVE, QUIT, MOVE, BOARD, TURN, SHUTDOWN])
-STATUSES = set([JOINED, LEFT, MOVED, WINNER, YOU_ARE, BOARD, TURN])
+STATUSES = set([JOINED, LEFT, MOVED, CAPTURED, WINNER, YOU_ARE, BOARD, TURN, LIST])
 
 
 class ServerException(Exception):
@@ -26,8 +27,12 @@ class RequestHandler(StreamRequestHandler):
         self.player = None
         self.game = None
 
-    def send_status(self, message):
-        self.wfile.write(message + '\n')
+    def send_line(self, line):
+        self.wfile.write(line + '\r\n')
+        log.info('%s <= %s', ':'.join(map(str, self.client_address)), line)
+
+    def flush(self):
+        self.wfile.flush()
 
     def handle(self):
 
@@ -37,10 +42,15 @@ class RequestHandler(StreamRequestHandler):
 
         while True:
 
-            req = self.rfile.readline().strip().split()
+            req = self.rfile.readline().strip()
+
+            log.info('%s => %s', ':'.join(map(str, self.client_address)), req)
+
+            req = req.split()
+
             if not req:
                 continue
-            log.info('received: %s', req)
+
             cmd = req.pop(0)
 
             try:
@@ -62,18 +72,18 @@ class RequestHandler(StreamRequestHandler):
                             orig_game.leave(orig_player)
                     elif cmd == LIST:
                         games = self.server.get_games()
-                        self.send_status('STATUS GAME LIST ' + ' '.join(
+                        self.send_line('STATUS LIST ' + ' '.join(
                             [str(g.id) for g in games if not game or game is not g]))
                     elif game and cmd == LEAVE:
                         game.leave(player)
                         game = player = None
                     elif game and cmd == BOARD:
-                        self.send_status('STATUS BOARD %s' % repr(game))
+                        self.send_line('STATUS BOARD %s' % repr(game))
                     elif game and cmd == MOVE:
                         src, dst = (int(req.pop(0)), int(req.pop(0))), (int(req.pop(0)), int(req.pop(0)))
                         game.make_move(src, dst, player)
                     elif game and cmd == TURN:
-                        self.send_status('STATUS TURN %s' % game.turn)
+                        self.send_line('STATUS TURN %s' % game.turn)
                     elif cmd == SHUTDOWN:
                         self.server.shutdown()
                     else:
@@ -83,7 +93,8 @@ class RequestHandler(StreamRequestHandler):
             except ServerException as error:
                 result = [ERROR, error.message]
 
-            self.wfile.write(' '.join(result) + '\n')
+            self.send_line(' '.join(result))
+            self.flush()
 
         log.info('handler finishing')
 
@@ -101,7 +112,7 @@ class Game:
     def send_status(self, message, player=None):
         for p in self.players:
             if (player is None or p == player) and self.players[p]:
-                self.players[p].send_status(message)
+                self.players[p].send_line(message)
 
     def join(self, player_handler):
         with self.lock:
@@ -154,21 +165,21 @@ class Game:
             try:
                 was_king = self.board[src].king
                 move_status = [STATUS, MOVED] + [str(i) for i in src] + [str(i) for i in dst]
-                self.board.move(src, dst)
+                captured = self.board.move(src, dst)
                 self.send_status(' '.join(move_status))
+                if captured:
+                    self.send_status(' '.join([STATUS, CAPTURED] + [str(i) for i in captured.location]))
                 if not was_king and self.board[dst].king:
                     self.send_status(' '.join([STATUS, KING] + [str(i) for i in dst]))
                 self.send_status(' '.join([STATUS, TURN, self.turn]))
                 if self.winner:
-                    self.send_status(' '.join(STATUS, WINNER, self.winner))
+                    self.send_status(' '.join([STATUS, WINNER, self.winner]))
             except CheckersException as ce:
                 raise ServerException(ce.message)
 
     def __repr__(self):
         with self.lock:
-            return '|'.join(
-                filter(
-                    lambda item: len(item), str(self.board).split('\n')))
+            return repr(self.board)
 
 
 class Server(ThreadingTCPServer):
