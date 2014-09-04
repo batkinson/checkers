@@ -13,7 +13,8 @@ from pygame import mixer
 from pygame.sprite import Sprite, RenderUpdates, GroupSingle
 from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 from pygame.time import Clock
-from internals import Board, Piece, RED, BLACK, InvalidMoveException
+from internals import Board, Piece, RED, BLACK, InvalidMoveException, players
+from netclient import NetBoard, StatusHandler
 
 WHITE = (255, 255, 255)
 TILE_WIDTH = 75
@@ -118,14 +119,14 @@ class Square(Rect):
         self.width, self.height = TILE_WIDTH, TILE_WIDTH
 
 
-class Game:
+class Game(StatusHandler):
 
     def __init__(self, title='Checkers', log_level=log.INFO, log_drag=False, show_fps=False):
         log.basicConfig(level=log_level)
         self.log_drag = log_drag
         self.show_fps = show_fps
         self.window_title = title
-        self.game = Board()
+        self.game = NetBoard(handler=self)
         # Initialize Game Groups
         self.board_spaces = set()
         self.pieces = RenderUpdates()
@@ -143,6 +144,37 @@ class Game:
         self.winner_rect = None
         self.turn_text = None
         self.turn_rect = None
+
+    def handle_list(self, game_list):
+        if game_list:
+            self.game.client.join(game_list[0])
+        else:
+            self.game.client.new_game()
+
+    def handle_board(self, board):
+        for piece in board:
+            new_piece = PieceSprite(piece.player)
+            new_piece.king = piece.king
+            self.game.add_piece(new_piece, piece.location)
+            new_piece.update_from_board()
+            self.pieces.add(new_piece)
+
+    def handle_turn(self, player):
+        self.game.turn = player
+
+    def handle_you_are(self, player):
+        self.player = player
+
+    def handle_moved(self, src, dst):
+        moved_pieces = [p for p in self.pieces if p.location == src]
+        Board.move(self.game, src, dst)
+        if moved_pieces:
+            moved_pieces[0].update_from_board()
+
+    def handle_captured(self, loc):
+        captured_pieces = [p for p in self.pieces if p.location == loc]
+        if captured_pieces:
+            self.pieces.remove(captured_pieces[0])
 
     def _board_setup(self, **kwargs):
         """ initialize board state """
@@ -200,7 +232,15 @@ class Game:
 
     def _draw_turn(self):
         if not self.game.winner():
-            turn_text = self.font.render("%s's turn" % self.game.turn.title(), True, WHITE)
+            msg = None
+            if self.game.turn not in players:
+                msg = "waiting for player"
+            else:
+                if self.player == self.game.turn:
+                    msg = "Your turn"
+                else:
+                    msg = "%s's turn" % self.game.turn.title()
+            turn_text = self.font.render(msg, True, WHITE)
             turn_rect = turn_text.get_rect()
             turn_rect.centerx, turn_rect.centery = self.background_rect.centerx, self.background_rect.centery
             self.screen.blit(turn_text, turn_rect)
@@ -214,11 +254,15 @@ class Game:
 
     def _quit(self):
         log.debug('quitting')
-        sys.exit()
+        self.game.client.quit()
+        sys.exit(0)
 
     def _select_piece(self, event):
         # select the piece by seeing if the piece collides with cursor
-        self.piece_selected.add(piece for piece in self.pieces if piece.rect.collidepoint(event.pos))
+        self.piece_selected.add(piece for piece in self.pieces
+                                if piece.rect.collidepoint(event.pos)
+                                and piece.player == self.player
+                                and piece.player == self.game.turn)
         # Capture piece's original position (at center) to determine move on drop
         if len(self.piece_selected) > 0:
             # Assumed: starting a move
@@ -290,13 +334,6 @@ class Game:
         log.debug('building initial game board')
         self._board_setup(brown_spaces=self.board_spaces)
 
-        log.debug('initializing game pieces')
-        for player, x, y in self.game.start_positions():
-            new_piece = PieceSprite(player)
-            self.game.add_piece(new_piece, (x, y))
-            new_piece.update_from_board()
-            self.pieces.add(new_piece)
-
         log.debug('drawing initial content to screen')
         self.screen.blit(self.background, ORIGIN)
         pygame.display.flip()
@@ -330,6 +367,8 @@ class Game:
                     if self.log_drag:
                         log.debug('dragging')
                     self._drag_piece()
+
+            self.game.update()
 
             self._draw_items()
 
