@@ -41,9 +41,23 @@ class Piece():
         self.location = None
 
     def __str__(self):
+        return repr(self)
+
+    def __repr__(self):
         p = self.player[:1]
         if self.king:
             return p.upper()
+        return p
+
+    @staticmethod
+    def from_repr(c):
+        p = None
+        if c.lower() == 'r':
+            p = Piece(RED)
+        elif c.lower() == 'b':
+            p = Piece(BLACK)
+        if c == 'R' or c == 'B':
+            p.king = True
         return p
 
 
@@ -72,22 +86,30 @@ class Board:
     @staticmethod
     def from_str(board_str):
         """Returns an initialized board from a string representation."""
-        lines = board_str.split()
+        lines = filter(lambda l: len(l), board_str.split('\n'))
         dim = len(lines[0])
+        if len(lines[0]) != len(lines):
+            raise CheckersException('board dimension mismatch: %s x %s' % len(lines[0]), len(lines))
         board = Board(dim)
         for row, line in enumerate(lines):
             for col, c in enumerate(line):
-                loc = (col, row)
-                p = None
-                if c.lower() == 'r':
-                    p = Piece(RED)
-                elif c.lower() == 'b':
-                    p = Piece(BLACK)
-                if c == 'R' or c == 'B':
-                        p.king = True
-                if p:
-                    board.add_piece(p, loc)
+                piece = Piece.from_repr(c)
+                if piece:
+                    board.add_piece(piece, (col, row))
         return board
+
+    def load_str(self, board_str, split_on='|'):
+        self.clear()
+        lines = filter(lambda l: len(l), board_str.split(split_on))
+        if len(lines[0]) != self.dim:
+            raise CheckersException('can not load string of dim %s into board of dim %s' % len(lines[0]), self.dim)
+        if len(lines[0]) != len(lines):
+            raise CheckersException('board dimension mismatch: %s x %s' % len(lines[0]), len(lines))
+        for row, line in enumerate(lines):
+            for col, c in enumerate(line):
+                piece = Piece.from_repr(c)
+                if piece:
+                    self.add_piece(piece, (col, row))
 
     def _init_moves(self):
 
@@ -311,15 +333,23 @@ class Board:
             raise InvalidMoveException("invalid move from %s to %s" % (source, target))
         return self._perform_move(source, target)
 
+    def __repr__(self):
+        """Returns the board in computer readable form."""
+        return '|'.join([
+            ''.join([
+                repr(self[(x,y)]) if (x,y) in self else '*'
+                for x in xrange(self.dim)
+            ])
+            for y in xrange(self.dim)
+        ])
+
     def __str__(self):
-        """Returns the board in string form."""
-        result = ""
-        for y in xrange(self.dim):
-            for x in xrange(self.dim):
-                loc = (x, y)
-                if loc in self:
-                    result += str(self[loc])
-                else:
-                    result += '*'
-            result += '\n'
-        return result
+        """Returns the board in human readable form."""
+        return '\n'.join([
+            ''.join([
+                repr(self[(x,y)]) if (x,y) in self else '*'
+                for x in xrange(self.dim)
+            ])
+            for y in xrange(self.dim)
+        ]) + '\n'
+
