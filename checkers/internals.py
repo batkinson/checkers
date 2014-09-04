@@ -318,7 +318,6 @@ class Board:
             captured_piece = self[capture]
             self._player_pieces[captured_piece.player].remove(captured_piece)  # Remove piece from player
             self._loc_pieces.pop(capture)  # Remove captured piece from board
-            captured_piece.location = None  # Captured piece will no longer have a location
             result = captured_piece
             self.last_jump_target = target
         else:
