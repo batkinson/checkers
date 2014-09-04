@@ -192,6 +192,11 @@ class Board:
         self._loc_pieces[loc] = piece
         self._player_pieces[piece.player].add(piece)
 
+    def clear(self):
+        for player in players:
+            self._player_pieces[player].clear()
+        self._loc_pieces.clear()
+
     def winner(self):
         """Returns the player that has won the game or None if no winner."""
         num_black, num_red = len(self._player_pieces[BLACK]), len(self._player_pieces[RED])
