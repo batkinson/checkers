@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import sys
 from SocketServer import ThreadingTCPServer, StreamRequestHandler
 from internals import RED, BLACK, Board, Piece, CheckersException, opponent
 from threading import RLock
@@ -215,6 +216,11 @@ class Server(ThreadingTCPServer):
 if __name__ == '__main__':
     server = None
     try:
-        server = Server().serve_forever()
+        if len(sys.argv) > 1:
+            port = int(sys.argv[1])
+            server = Server(port=port)
+        else:
+            server = Server()
+        server.serve_forever()
     except Exception as e:
         log.exception(e)
