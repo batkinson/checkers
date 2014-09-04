@@ -181,7 +181,7 @@ class Board:
         """Sets the piece occupying the position specified by the tuple (x,y)
         to the specified player"""
         if piece.player not in players:
-            raise CheckersException('Piece doe not belong to a player')
+            raise CheckersException('Piece does not belong to a player')
         if piece in self._player_pieces:
             self._player_pieces.pop(piece)
         if piece in self._loc_pieces.values():
