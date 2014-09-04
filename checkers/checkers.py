@@ -119,12 +119,12 @@ class Square(Rect):
 
 class Game(StatusHandler):
 
-    def __init__(self, title='Checkers', log_level=log.INFO, log_drag=False, show_fps=False):
+    def __init__(self, title='Checkers', log_level=log.INFO, log_drag=False, show_fps=False, ip='127.0.0.1', port=5000):
         log.basicConfig(level=log_level)
         self.log_drag = log_drag
         self.show_fps = show_fps
         self.window_title = title
-        self.game = NetBoard(handler=self)
+        self.game = NetBoard(handler=self, ip=ip, port=port)
         # Initialize Game Groups
         self.board_spaces = set()
         self.pieces = RenderUpdates()
@@ -376,4 +376,12 @@ class Game(StatusHandler):
             pygame.display.flip()
 
 if __name__ == '__main__':
-    Game(log_level=log.DEBUG).run()
+    game = None
+    log_level = log.DEBUG
+    if len(sys.argv) > 2:
+        ip = sys.argv[1]
+        port = int(sys.argv[2])
+        game = Game(log_level=log_level, ip=ip, port=port)
+    else:
+        game = Game(log_level=log_level)
+    game.run()
