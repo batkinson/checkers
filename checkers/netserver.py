@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from SocketServer import ThreadingTCPServer, StreamRequestHandler
 from internals import RED, BLACK, Board, Piece, CheckersException, opponent
 from threading import RLock
