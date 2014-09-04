@@ -95,13 +95,11 @@ class PieceSprite(Piece, Sprite):
 
     def update_from_board(self):
 
-        if self.king and self.type != "king":
-            # This needs to happen before the rect update below because rect is replaced by image load
-            self.type = "king"
+        if self.king:
             if self.player == RED:
-                self.image, self.rect = Images.load('red-piece-king.png')
+                self.image, _ = Images.load('red-piece-king.png')
             elif self.player == BLACK:
-                self.image, self.rect = Images.load('black-piece-king.png')
+                self.image, _ = Images.load('black-piece-king.png')
 
         self.rect.centerx, self.rect.centery = [game_to_screen(v) for v in self.location]
 
