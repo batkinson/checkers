@@ -377,7 +377,7 @@ class Game(StatusHandler):
 
 if __name__ == '__main__':
     game = None
-    log_level = log.DEBUG
+    log_level = log.INFO
     if len(sys.argv) > 2:
         ip = sys.argv[1]
         port = int(sys.argv[2])

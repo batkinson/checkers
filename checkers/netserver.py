@@ -31,14 +31,16 @@ class RequestHandler(StreamRequestHandler):
 
     def send_line(self, line):
         self.wfile.write(line + '\r\n')
-        log.info('%s <= %s', ':'.join(map(str, self.client_address)), line)
+        log.debug('%s <= %s', ':'.join(map(str, self.client_address)), line)
 
     def flush(self):
         self.wfile.flush()
 
     def handle(self):
 
-        log.info('handling request')
+        client = ':'.join(map(str, self.client_address))
+
+        log.debug('%s connected', client)
 
         game = player = None
 
@@ -46,7 +48,7 @@ class RequestHandler(StreamRequestHandler):
 
             req = self.rfile.readline().strip()
 
-            log.info('%s => %s', ':'.join(map(str, self.client_address)), req)
+            log.debug('%s => %s', client, req)
 
             req = req.split()
 
@@ -98,7 +100,7 @@ class RequestHandler(StreamRequestHandler):
             self.send_line(' '.join(result))
             self.flush()
 
-        log.info('handler finishing')
+        log.debug('%s finishing', client)
 
 
 class Game:
@@ -191,7 +193,7 @@ class Server(ThreadingTCPServer):
         self.games = {}
         self.lock = RLock()
         self.allow_reuse_address = True
-        log.info('starting server')
+        log.info('starting server on port %s:%s', ip, str(port))
         ThreadingTCPServer.__init__(self, (ip, port), RequestHandler)
 
     def get_games(self):

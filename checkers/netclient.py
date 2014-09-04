@@ -82,7 +82,7 @@ class Client:
         if readers:
             lines = self._read_lines()
             for line in lines:
-                log.info('<= %s', line)
+                log.debug('<= %s', line)
                 result.append(line)
         self.status_lines += filter(is_status_line, result)
         return self.process_status()
@@ -126,7 +126,7 @@ class Client:
 
     def send_line(self, line):
         self.socket.sendall(line + '\r\n')
-        log.info("=> %s", line)
+        log.debug("=> %s", line)
 
     def list(self):
         self.send_line('LIST')
@@ -163,6 +163,7 @@ class NetBoard(Board):
         self.turn = WAIT
         self.player = None
         self.client = Client(ip=ip, port=port, status_handler=handler)
+        log.info('trying game server at %s:%s', ip, port)
         self.connect()
 
     def update(self):
