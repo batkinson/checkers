@@ -217,12 +217,13 @@ class Server(ThreadingTCPServer):
 
 if __name__ == '__main__':
     server = None
+    log_level = log.INFO
     try:
         if len(sys.argv) > 1:
             port = int(sys.argv[1])
-            server = Server(port=port)
+            server = Server(log_level=log_level, port=port)
         else:
-            server = Server()
+            server = Server(log_level=log_level)
         server.serve_forever()
     except Exception as e:
         log.exception(e)
