@@ -121,6 +121,7 @@ class Game(StatusHandler):
 
     def __init__(self, title='Checkers', log_level=log.INFO, log_drag=False, show_fps=False, ip='127.0.0.1', port=5000):
         log.basicConfig(level=log_level)
+        self.player = None
         self.log_drag = log_drag
         self.show_fps = show_fps
         self.window_title = title
