@@ -355,5 +355,5 @@ class Board:
                 for x in xrange(self.dim)
             ])
             for y in xrange(self.dim)
-        ]) + '\n'
+        ])
 

@@ -185,6 +185,7 @@ class Game(StatusHandler):
         if moved_pieces:
             moved_pieces[0].update_from_board()
             Sounds.play('slap.ogg')
+            log.debug("board after drop:\n%s", str(self.game))
 
     def handle_captured(self, loc):
         captured_pieces = [p for p in self.pieces if p.location == loc]
@@ -244,6 +245,7 @@ class Game(StatusHandler):
     def _reset_selected_piece(self):
         self.piece_selected.sprite.update_from_board()
         Sounds.play('slap.ogg')
+        log.debug("board after drop:\n%s", str(self.game))
 
     def _drop_piece(self, event):
         if pygame.event.get_grab():
@@ -262,9 +264,8 @@ class Game(StatusHandler):
                     log.debug(ce)
                     self._reset_selected_piece()
             else:
+                log.debug('dropped on unplayable game space')
                 self._reset_selected_piece()
-
-            log.debug("board after drop:\n%s", str(self.game))
 
             # Add piece back to stationary set
             self.pieces.add(self.piece_selected)
