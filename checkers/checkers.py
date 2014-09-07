@@ -324,10 +324,6 @@ class Game(StatusHandler):
         bg_rect = self.background_rect
 
         class FPSText(Text):
-            def __init__(self, *args):
-                self.game = game
-                Text.__init__(self, *args)
-
             def update(self, *args):
                 Text.update(self, *args)
                 self.rect.right, self.rect.bottom = bg_rect.right, bg_rect.bottom
@@ -337,9 +333,6 @@ class Game(StatusHandler):
             self.fg_text.add(self.fps_text)
 
         class TurnText(Text):
-            def __init__(self, *args):
-                Text.__init__(self, *args)
-
             def update(self, *args):
                 Text.update(self, *args)
                 self.rect.centerx, self.rect.centery = bg_rect.centerx, bg_rect.centery
@@ -348,9 +341,6 @@ class Game(StatusHandler):
         self.bg_text.add(self.turn_text)
 
         class WinnerText(Text):
-            def __init__(self, *args):
-                Text.__init__(self, *args)
-
             def update(self, *args):
                 Text.update(self, *args)
                 self.rect.centerx, self.rect.centery = bg_rect.centerx, bg_rect.centery
