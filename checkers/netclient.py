@@ -1,4 +1,4 @@
-from internals import Board
+from internals import Board, InvalidMoveException
 from socket import socket, AF_INET, SOCK_STREAM, TCP_NODELAY, IPPROTO_TCP, timeout, error
 from select import select
 from netserver import WAIT
@@ -173,5 +173,8 @@ class NetBoard(Board):
         self.client.list()
 
     def move(self, src, dst):
-        self.client.send_line('MOVE %s %s %s %s' % (src[0], src[1], dst[0], dst[1]))
+        if self._valid_move(src, dst):
+            self.client.send_line('MOVE %s %s %s %s' % (src[0], src[1], dst[0], dst[1]))
+        else:
+            raise InvalidMoveException("invalid move from %s to %s" % (src, dst))
 
