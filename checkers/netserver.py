@@ -198,7 +198,7 @@ class Server(ThreadingTCPServer):
 
     def get_games(self):
         with self.lock:
-            return [g for g in self.games.values() if g.open_seats]
+            return [g for g in self.games.values() if g.open_seats and not g.winner]
 
     def new_game(self, handler):
         with self.lock:
