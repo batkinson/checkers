@@ -192,7 +192,7 @@ class Game(StatusHandler):
         if captured_pieces:
             self.pieces.remove(captured_pieces[0])
 
-    def _board_setup(self, **kwargs):
+    def _board_space_setup(self):
         """ initialize board state """
         for col, row in self.game.usable_positions():
             self.board_spaces.add(Square(row, col))
@@ -318,8 +318,8 @@ class Game(StatusHandler):
         log.debug('loading background')
         self.background, self.background_rect = self._get_background()
 
-        log.debug('building initial game board')
-        self._board_setup(brown_spaces=self.board_spaces)
+        log.debug('setting up drop locations')
+        self._board_space_setup()
 
         log.debug('building text')
         bg_rect = self.background_rect
