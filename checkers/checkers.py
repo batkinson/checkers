@@ -117,6 +117,23 @@ class Square(Rect):
         self.width, self.height = TILE_WIDTH, TILE_WIDTH
 
 
+class Text(Sprite):
+
+    """Allows rendering text as sprites."""
+
+    def __init__(self, text, font, color):
+        Sprite.__init__(self)
+        self.text, self.font, self.color = text, font, color
+        self._update()
+
+    def _update(self):
+        self.image = self.font.render(self.text, True, self.color)
+        self.rect = self.image.get_rect()
+
+    def update(self, *args):
+        self._update()
+
+
 class Game(StatusHandler):
 
     def __init__(self, title='Checkers', log_level=log.INFO, log_drag=False, show_fps=False, ip='127.0.0.1', port=5000):
@@ -130,19 +147,17 @@ class Game(StatusHandler):
         self.board_spaces = set()
         self.pieces = RenderUpdates()
         self.piece_selected = GroupSingle()
+        self.bg_text = RenderUpdates()
+        self.fg_text = RenderUpdates()
         self.current_piece_position = ORIGIN
         self.screen = None
         self.fps_clock = None
         self.font = None
-        self.font_rect = None
         self.background = None
         self.background_rect = None
         self.fps_text = None
-        self.fps_rect = None
         self.winner_text = None
-        self.winner_rect = None
         self.turn_text = None
-        self.turn_rect = None
 
     def handle_list(self, game_list):
         if game_list:
@@ -192,64 +207,11 @@ class Game(StatusHandler):
         result.blit(bg_img, bg_rect)
         return result.convert(), bg_rect
 
-    def _get_fps_text(self):
-        fps_text = self.font.render("%4.1f fps" % self.fps_clock.get_fps(), True, WHITE)
-        rect = fps_text.get_rect()
-        rect.right, rect.bottom = self.background_rect.right, self.background_rect.bottom
-        return fps_text, rect
-
-    def _draw_fps(self):
-        if self.show_fps:
-            self.fps_text, self.fps_rect = self._get_fps_text()
-            self.screen.blit(self.fps_text, self.fps_rect)
-
-    def _clear_fps(self):
-        if self.show_fps:
-            self.screen.blit(self.background, self.fps_rect, area=self.fps_rect)
-
     def _clear_items(self):
-        self._clear_fps()
-        self._clear_winner()
+        self.fg_text.clear(self.screen, self.background)
         self.piece_selected.clear(self.screen, self.background)
-        self._clear_turn()
         self.pieces.clear(self.screen, self.background)
-
-    def _draw_winner(self):
-        winner = self.game.winner()
-        if winner:
-            self.winner_text = self.font.render("%s wins!" % winner.title(), True, WHITE)
-            winner_rect = self.winner_text.get_rect()
-            winner_rect.centerx = self.background.get_rect().centerx
-            winner_rect.top = 100
-            self.winner_rect = winner_rect
-            self.screen.blit(self.winner_text, winner_rect)
-
-    def _clear_winner(self):
-        winner = self.game.winner()
-        if winner:
-            self.screen.blit(self.background, self.winner_rect, area=self.winner_rect)
-
-    def _draw_turn(self):
-        if not self.game.winner():
-            msg = None
-            if self.game.turn not in players:
-                msg = "Waiting for player"
-            else:
-                if self.player == self.game.turn:
-                    msg = "Your turn"
-                else:
-                    msg = "%s's turn" % self.game.turn.title()
-            turn_text = self.font.render(msg, True, WHITE)
-            turn_rect = turn_text.get_rect()
-            turn_rect.centerx, turn_rect.centery = self.background_rect.centerx, self.background_rect.centery
-            self.screen.blit(turn_text, turn_rect)
-        else:
-            turn_text, turn_rect = None, None
-        self.turn_text, self.turn_rect = turn_text, turn_rect
-
-    def _clear_turn(self):
-        if self.turn_rect:
-            self.screen.blit(self.background, self.turn_rect, area=self.turn_rect)
+        self.bg_text.clear(self.screen, self.background)
 
     def _quit(self):
         log.debug('quitting')
@@ -307,11 +269,32 @@ class Game(StatusHandler):
             self.piece_selected.empty()
 
     def _draw_items(self):
+        self.bg_text.draw(self.screen)
         self.pieces.draw(self.screen)
-        self._draw_turn()
         self.piece_selected.draw(self.screen)
-        self._draw_winner()
-        self._draw_fps()
+        self.fg_text.draw(self.screen)
+
+    def _update(self):
+        self.game.update()
+
+        self.fps_text.text = "%4.1f fps" % self.fps_clock.get_fps()
+
+        if self.game.turn not in players:
+            self.turn_text.text = "Waiting for player"
+        else:
+            if self.player == self.game.turn:
+                self.turn_text.text = "Your turn"
+            else:
+                self.turn_text.text = "%s's turn" % self.game.turn.title()
+
+        if self.game.winner():
+            self.turn_text.text = ''
+            self.winner_text.text = "%s wins!" % self.game.winner().title()
+        else:
+            self.winner_text.text = ''
+
+        self.bg_text.update()
+        self.fg_text.update()
 
     def run(self):
 
@@ -328,10 +311,48 @@ class Game(StatusHandler):
         self.font = pygame.font.Font(None, 36)
 
         log.debug('loading background')
-        self.background, self.background_rect= self._get_background()
+        self.background, self.background_rect = self._get_background()
 
         log.debug('building initial game board')
         self._board_setup(brown_spaces=self.board_spaces)
+
+        log.debug('building text')
+        bg_rect = self.background_rect
+
+        class FPSText(Text):
+            def __init__(self, *args):
+                self.game = game
+                Text.__init__(self, *args)
+
+            def update(self, *args):
+                Text.update(self, *args)
+                self.rect.right, self.rect.bottom = bg_rect.right, bg_rect.bottom
+
+        self.fps_text = FPSText('', self.font, WHITE)
+        if self.show_fps:
+            self.fg_text.add(self.fps_text)
+
+        class TurnText(Text):
+            def __init__(self, *args):
+                Text.__init__(self, *args)
+
+            def update(self, *args):
+                Text.update(self, *args)
+                self.rect.centerx, self.rect.centery = bg_rect.centerx, bg_rect.centery
+
+        self.turn_text = TurnText('', self.font, WHITE)
+        self.bg_text.add(self.turn_text)
+
+        class WinnerText(Text):
+            def __init__(self, *args):
+                Text.__init__(self, *args)
+
+            def update(self, *args):
+                Text.update(self, *args)
+                self.rect.centerx, self.rect.centery = bg_rect.centerx, bg_rect.centery
+
+        self.winner_text = WinnerText('', self.font, WHITE)
+        self.fg_text.add(self.winner_text)
 
         log.debug('drawing initial content to screen')
         self.screen.blit(self.background, ORIGIN)
@@ -341,8 +362,6 @@ class Game(StatusHandler):
         self.current_piece_position = ORIGIN
 
         self.fps_clock = Clock()
-
-        self._draw_fps()
 
         # Event loop
         while True:
@@ -367,7 +386,7 @@ class Game(StatusHandler):
                         log.debug('dragging')
                     self._drag_piece()
 
-            self.game.update()
+            self._update()
 
             self._draw_items()
 
