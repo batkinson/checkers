@@ -398,10 +398,11 @@ class Game(StatusHandler):
 if __name__ == '__main__':
     game = None
     log_level = log.INFO
+    show_fps = False
     if len(sys.argv) > 2:
         ip = sys.argv[1]
         port = int(sys.argv[2])
-        game = Game(log_level=log_level, ip=ip, port=port)
+        game = Game(show_fps=show_fps, log_level=log_level, ip=ip, port=port)
     else:
-        game = Game(log_level=log_level)
+        game = Game(show_fps=show_fps, log_level=log_level)
     game.run()
