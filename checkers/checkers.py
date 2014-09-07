@@ -184,6 +184,7 @@ class Game(StatusHandler):
         Board.move(self.game, src, dst)
         if moved_pieces:
             moved_pieces[0].update_from_board()
+            Sounds.play('slap.ogg')
 
     def handle_captured(self, loc):
         captured_pieces = [p for p in self.pieces if p.location == loc]
@@ -240,6 +241,10 @@ class Game(StatusHandler):
         if self.log_drag:
             log.debug('updated piece to %s', pygame.mouse.get_pos())
 
+    def _reset_selected_piece(self):
+        self.piece_selected.sprite.update_from_board()
+        Sounds.play('slap.ogg')
+
     def _drop_piece(self, event):
         if pygame.event.get_grab():
             pygame.event.set_grab(False)
@@ -252,15 +257,14 @@ class Game(StatusHandler):
                 log.debug('dropped a piece')
                 piece, space = self.piece_selected.sprite, space_selected[0]
                 try:
-                    captured = self.game.move(piece.location, (space.col, space.row))
-                    if captured:
-                        self.pieces.remove(captured)
-                    Sounds.play('slap.ogg')
+                    self.game.move(piece.location, (space.col, space.row))
                 except InvalidMoveException as ce:
                     log.debug(ce)
-                log.debug("board after drop:\n%s", str(self.game))
+                    self._reset_selected_piece()
+            else:
+                self._reset_selected_piece()
 
-            self.piece_selected.sprite.update_from_board()
+            log.debug("board after drop:\n%s", str(self.game))
 
             # Add piece back to stationary set
             self.pieces.add(self.piece_selected)
