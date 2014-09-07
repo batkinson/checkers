@@ -158,6 +158,7 @@ class Game(StatusHandler):
         self.fps_text = None
         self.winner_text = None
         self.turn_text = None
+        self.player_text = None
 
     def handle_list(self, game_list):
         if game_list:
@@ -284,6 +285,9 @@ class Game(StatusHandler):
 
         self.fps_text.text = "%4.1f fps" % self.fps_clock.get_fps()
 
+        if self.player:
+            self.player_text.text = "Your pieces are %s" % self.player
+
         if self.game.turn not in players:
             self.turn_text.text = "Waiting for player"
         else:
@@ -348,6 +352,14 @@ class Game(StatusHandler):
 
         self.winner_text = WinnerText('', self.font, WHITE)
         self.fg_text.add(self.winner_text)
+
+        class PlayerText(Text):
+            def update(self, *args):
+                Text.update(self, *args)
+                self.rect.centerx, self.rect.bottom = bg_rect.centerx, bg_rect.bottom
+
+        self.player_text = PlayerText('', pygame.font.Font(None, 24), WHITE)
+        self.bg_text.add(self.player_text)
 
         log.debug('drawing initial content to screen')
         self.screen.blit(self.background, ORIGIN)
