@@ -159,10 +159,13 @@ class Game(StatusHandler):
         self.winner_text = None
         self.turn_text = None
         self.player_text = None
+        self.game_id_text = None
 
     def handle_list(self, game_list):
         if game_list:
-            self.game.client.join(game_list[0])
+            game_id = game_list[0]
+            self.game.client.join(game_id)
+            self.game_id_text.text = "Game: %s" % game_id
         else:
             self.game.client.new_game()
 
@@ -360,6 +363,14 @@ class Game(StatusHandler):
 
         self.player_text = PlayerText('', pygame.font.Font(None, 24), WHITE)
         self.bg_text.add(self.player_text)
+
+        class GameIdText(Text):
+            def update(self, *args):
+                Text.update(self, *args)
+                self.rect.centerx, self.rect.top = bg_rect.centerx, bg_rect.top + (0.25 * self.font.get_height())
+
+        self.game_id_text = GameIdText('', pygame.font.Font(None, 20), WHITE)
+        self.bg_text.add(self.game_id_text)
 
         log.debug('drawing initial content to screen')
         self.screen.blit(self.background, ORIGIN)
