@@ -218,17 +218,20 @@ class Server(ThreadingTCPServer):
     def _prune_idle_games(self):
         with self.lock:
             now = time()
-            to_prune = []
             for key, game in self.games.items():
                 if game.last_interaction < now - PRUNE_IDLE_SECS:
-                    game = self.games.pop(key)
+                    self.games.pop(key)
+
+    def get_games(self):
+        with self.lock:
+            self._prune_idle_games()
+            return [g for g in self.games.values()]
 
     def get_open_games(self):
-        with self.lock:
-            try:
-                return [g for g in self.games.values() if g.open_seats and not g.winner]
-            finally:
-                self._prune_idle_games()
+        return [g for g in self.get_games() if g.open_seats and not g.winner]
+
+    def get_full_games(self):
+        return [g for g in self.get_games() if not g.open_seats]
 
     def new_game(self, handler):
         with self.lock:
