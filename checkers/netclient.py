@@ -1,7 +1,8 @@
 from internals import Board, InvalidMoveException
 from socket import socket, AF_INET, SOCK_STREAM, TCP_NODELAY, IPPROTO_TCP, timeout, error
 from select import select
-from netserver import WAIT, SPECTATE
+from netserver import LEAVE, QUIT, SHUTDOWN, NEW, MOVE, JOIN, LIST, SPECTATE, TURN, BOARD
+from netserver import WAIT, WINNER, JOINED, LEFT, MOVED, CAPTURED, YOU_ARE, GAME_ID
 import logging as log
 from StringIO import StringIO
 
@@ -100,32 +101,32 @@ class Client:
                 line = line.strip().split(' ')[1:]
                 status = line[0]
                 line = line[1:]
-                if status == 'WINNER':
+                if status == WINNER:
                     self.status_handler.handle_winner(line[0])
-                elif status == 'JOINED':
+                elif status == JOINED:
                     self.status_handler.handle_joined(line[0])
-                elif status == 'LEFT':
+                elif status == LEFT:
                     self.status_handler.handle_left(line[0])
-                elif status == 'MOVED':
+                elif status == MOVED:
                     src, dst = (int(line[0]), int(line[1])), (int(line[2]), int(line[3]))
                     self.status_handler.handle_moved(src, dst)
-                elif status == 'CAPTURED':
+                elif status == CAPTURED:
                     loc = (int(line[0]), int(line[1]))
                     self.status_handler.handle_captured(loc)
-                elif status == 'YOU_ARE':
+                elif status == YOU_ARE:
                     self.status_handler.handle_you_are(line[0])
-                elif status == 'BOARD':
+                elif status == BOARD:
                     board = Board()
                     board.load_str(line[0])
                     self.status_handler.handle_board(board)
-                elif status == 'TURN':
+                elif status == TURN:
                     self.status_handler.handle_turn(line[0])
-                elif status == 'LIST':
+                elif status == LIST:
                     list_type = None
                     if len(line) and line[0] == SPECTATE:
                         list_type = line.pop(0)
                     self.status_handler.handle_list(line, list_type=list_type)
-                elif status == 'GAME_ID':
+                elif status == GAME_ID:
                     self.status_handler.handle_game_id(line[0])
                 did_something = True
             except Exception as e:
@@ -136,38 +137,41 @@ class Client:
         self.socket.sendall(line + '\r\n')
         log.debug("=> %s", line)
 
+    def send_list(self, *args):
+        self.send_line(' '.join(map(str, *args)))
+
     def list(self, list_type=None):
+        list_cmd = [LIST]
         if list_type:
-            self.send_line('LIST %s' % list_type)
-        else:
-            self.send_line('LIST')
+            list_cmd.append(list_type)
+        self.send_list(list_cmd)
 
     def join(self, game_id):
-        self.send_line('JOIN %s' % game_id)
+        self.send_list(JOIN, game_id)
 
     def spectate(self, game_id):
-        self.send_line('SPECTATE %s' % game_id)
+        self.send_list(SPECTATE, game_id)
 
     def leave(self):
-        self.send_line('LEAVE')
+        self.send_line(LEAVE)
 
     def quit(self):
-        self.send_line('QUIT')
+        self.send_line(QUIT)
 
     def shutdown(self):
-        self.send_line('SHUTDOWN')
+        self.send_line(SHUTDOWN)
 
     def new_game(self):
-        self.send_line('NEW')
+        self.send_line(NEW)
 
     def move(self, src, dst):
-        self.send_line('MOVE %s' % ' '.join(map(str, [src[0], src[1], dst[0], dst[1]])))
+        self.send_list(MOVE, src[0], src[1], dst[0], dst[1])
 
     def board(self):
-        self.send_line('BOARD')
+        self.send_line(BOARD)
 
     def turn(self):
-        self.send_line('TURN')
+        self.send_line(TURN)
 
 
 class NetBoard(Board):
