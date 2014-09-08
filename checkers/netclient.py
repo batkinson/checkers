@@ -8,6 +8,9 @@ from StringIO import StringIO
 
 class StatusHandler:
 
+    def handle_game_id(self, player):
+        pass
+
     def handle_winner(self, player):
         pass
 
@@ -119,6 +122,8 @@ class Client:
                     self.status_handler.handle_turn(line[0])
                 elif status == 'LIST':
                     self.status_handler.handle_list(line)
+                elif status == 'GAME_ID':
+                    self.status_handler.handle_game_id(line[0])
                 did_something = True
             except Exception as e:
                 log.exception(e)

@@ -161,11 +161,13 @@ class Game(StatusHandler):
         self.player_text = None
         self.game_id_text = None
 
+    def handle_game_id(self, game_id):
+        self.game_id_text.text = "Game: %s" % game_id
+
     def handle_list(self, game_list):
         if game_list:
             game_id = game_list[0]
             self.game.client.join(game_id)
-            self.game_id_text.text = "Game: %s" % game_id
         else:
             self.game.client.new_game()
 

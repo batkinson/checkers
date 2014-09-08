@@ -14,11 +14,11 @@ PRUNE_IDLE_SECS = 60 * 10  # 10 Minutes
 LIST, JOIN, NEW, LEAVE, QUIT, MOVE, SHUTDOWN, TURN, BOARD = 'LIST', 'JOIN', 'NEW', 'LEAVE', 'QUIT', 'MOVE', 'SHUTDOWN',\
                                                             'TURN', 'BOARD'
 ERROR, OK, STATUS = 'ERROR', 'OK', 'STATUS'
-JOINED, YOU_ARE, LEFT, MOVED, CAPTURED, KING, WAIT, WINNER = 'JOINED', 'YOU_ARE', 'LEFT', 'MOVED', 'CAPTURED', 'KING', \
-                                                             'waiting', 'WINNER'
+JOINED, YOU_ARE, LEFT, MOVED, CAPTURED, KING, WAIT, WINNER, GAME_ID = 'JOINED', 'YOU_ARE', 'LEFT', 'MOVED', 'CAPTURED',\
+                                                                   'KING', 'waiting', 'WINNER', 'GAME_ID'
 
 COMMANDS = set([LIST, JOIN, NEW, LEAVE, QUIT, MOVE, BOARD, TURN, SHUTDOWN])
-STATUSES = set([JOINED, LEFT, MOVED, CAPTURED, WINNER, YOU_ARE, BOARD, TURN, LIST])
+STATUSES = set([JOINED, LEFT, MOVED, CAPTURED, WINNER, YOU_ARE, BOARD, TURN, LIST, GAME_ID])
 
 
 class ServerException(Exception):
@@ -140,6 +140,7 @@ class Game:
                 raise ServerException('no available seats')
             open_player = self.open_seats[0]
             self.players[open_player] = player_handler
+            self.send_status(' '.join([STATUS, GAME_ID, str(self.id)]), player=open_player)
             self.send_status(' '.join([STATUS, BOARD, repr(self)]), player=open_player)
             self.send_status(' '.join([STATUS, JOINED, open_player]), player=opponent[open_player])
             self.send_status(' '.join([STATUS, YOU_ARE, open_player]), player=open_player)
