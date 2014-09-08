@@ -1,7 +1,7 @@
 from internals import Board, InvalidMoveException
 from socket import socket, AF_INET, SOCK_STREAM, TCP_NODELAY, IPPROTO_TCP, timeout, error
 from select import select
-from netserver import WAIT
+from netserver import WAIT, SPECTATE
 import logging as log
 from StringIO import StringIO
 
@@ -35,7 +35,7 @@ class StatusHandler:
     def handle_turn(self, player):
         pass
 
-    def handle_list(self, game_list):
+    def handle_list(self, game_list, list_type=None):
         pass
 
 
@@ -121,7 +121,10 @@ class Client:
                 elif status == 'TURN':
                     self.status_handler.handle_turn(line[0])
                 elif status == 'LIST':
-                    self.status_handler.handle_list(line)
+                    list_type = None
+                    if len(line) and line[0] == SPECTATE:
+                        list_type = line.pop(0)
+                    self.status_handler.handle_list(line, list_type=list_type)
                 elif status == 'GAME_ID':
                     self.status_handler.handle_game_id(line[0])
                 did_something = True
@@ -133,8 +136,11 @@ class Client:
         self.socket.sendall(line + '\r\n')
         log.debug("=> %s", line)
 
-    def list(self):
-        self.send_line('LIST')
+    def list(self, list_type=None):
+        if list_type:
+            self.send_line('LIST %s' % list_type)
+        else:
+            self.send_line('LIST')
 
     def join(self, game_id):
         self.send_line('JOIN %s' % game_id)
@@ -166,19 +172,22 @@ class Client:
 
 class NetBoard(Board):
 
-    def __init__(self, ip='127.0.0.1', port=5000, handler=StatusHandler()):
+    def __init__(self, ip='127.0.0.1', port=5000, handler=StatusHandler(), spectate=False):
         Board.__init__(self)
         self.turn = WAIT
         self.player = None
         log.info('trying game server at %s:%s', ip, port)
         self.client = Client(ip=ip, port=port, status_handler=handler)
-        self.connect()
+        self.connect(spectate)
 
     def update(self):
         self.client.read()
 
-    def connect(self):
-        self.client.list()
+    def connect(self, spectate):
+        if spectate:
+            self.client.list(SPECTATE)
+        else:
+            self.client.list()
 
     def move(self, src, dst):
         if self._valid_move(src, dst):

@@ -14,7 +14,7 @@ from pygame.sprite import Sprite, RenderUpdates, GroupSingle
 from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 from pygame.time import Clock
 from internals import Board, Piece, RED, BLACK, InvalidMoveException, players
-from netclient import NetBoard, StatusHandler
+from netclient import NetBoard, StatusHandler, SPECTATE
 
 WHITE = (255, 255, 255)
 TILE_WIDTH = 75
@@ -136,13 +136,14 @@ class Text(Sprite):
 
 class Game(StatusHandler):
 
-    def __init__(self, title='Checkers', log_level=log.INFO, log_drag=False, show_fps=False, ip='127.0.0.1', port=5000):
+    def __init__(self, title='Checkers', log_level=log.INFO, log_drag=False, show_fps=False, ip='127.0.0.1', port=5000,
+                 spectate=False):
         log.basicConfig(level=log_level)
         self.player = None
         self.log_drag = log_drag
         self.show_fps = show_fps
         self.window_title = title
-        self.game = NetBoard(handler=self, ip=ip, port=port)
+        self.game = NetBoard(handler=self, ip=ip, port=port, spectate=spectate)
         # Initialize Game Groups
         self.board_spaces = set()
         self.pieces = RenderUpdates()
@@ -164,11 +165,16 @@ class Game(StatusHandler):
     def handle_game_id(self, game_id):
         self.game_id_text.text = "Game: %s" % game_id
 
-    def handle_list(self, game_list):
-        if game_list:
+    def handle_list(self, game_list, list_type):
+
+        if list_type == SPECTATE and game_list:
+            game_id = game_list[0]
+            self.game.client.spectate(game_id)
+            self.player_text.text = 'You are a spectator'
+        elif not list_type and game_list:
             game_id = game_list[0]
             self.game.client.join(game_id)
-        else:
+        elif not list_type and not game_list:
             self.game.client.new_game()
 
     def handle_board(self, board):
@@ -426,10 +432,11 @@ if __name__ == '__main__':
     arg_p.add_argument('--log-level', help='diagnostic logging level', choices=['DEBUG', 'INFO'], default='INFO')
     arg_p.add_argument('--log-drag', help='log drag events', action='store_true', default=False)
     arg_p.add_argument('--show-fps', help='show frame rate', action='store_true', default=False)
+    arg_p.add_argument('--spectate', help='attempt to auto-spectate', action='store_true', default=False)
 
     args = arg_p.parse_args(args=sys.argv[1:])
 
     game = Game(ip=args.host, port=args.port, log_level=log.getLevelName(args.log_level), log_drag=args.log_drag,
-                show_fps=args.show_fps)
+                show_fps=args.show_fps, spectate=args.spectate)
 
     game.run()
