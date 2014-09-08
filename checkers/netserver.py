@@ -290,14 +290,19 @@ class Server(ThreadingTCPServer):
 
 
 if __name__ == '__main__':
-    server = None
-    log_level = log.INFO
+
+    from argparse import ArgumentParser
+
+    arg_p = ArgumentParser(description='A network-based checkers server')
+
+    arg_p.add_argument('--interface', help='interface to bind to', default='0.0.0.0')
+    arg_p.add_argument('--port', help='port to bind to', type=int, default='5000')
+    arg_p.add_argument('--log-level', help='diagnostic logging level', choices=['DEBUG', 'INFO'], default='INFO')
+
+    args = arg_p.parse_args(args=sys.argv[1:])
+
     try:
-        if len(sys.argv) > 1:
-            port = int(sys.argv[1])
-            server = Server(log_level=log_level, port=port)
-        else:
-            server = Server(log_level=log_level)
+        server = Server(ip=args.interface, port=args.port, log_level=log.getLevelName(args.log_level))
         server.serve_forever()
     except Exception as e:
         log.exception(e)
