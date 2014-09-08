@@ -155,7 +155,7 @@ class Client:
         self.send_line('NEW')
 
     def move(self, src, dst):
-        self.send_line('MOVE %s %s', ' '.join(src[0], src[1], dst[0], dst[1]))
+        self.send_line('MOVE %s', ' '.join(src[0], src[1], dst[0], dst[1]))
 
     def board(self):
         self.send_line('BOARD')
