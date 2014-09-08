@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 from SocketServer import ThreadingTCPServer, StreamRequestHandler
-from internals import RED, BLACK, Board, Piece, CheckersException, opponent
+from internals import RED, BLACK, Board, Piece, CheckersException
 from threading import RLock
 from time import time
 from functools import wraps
@@ -11,13 +11,13 @@ import logging as log
 PRUNE_IDLE_SECS = 60 * 10  # 10 Minutes
 
 
-LIST, JOIN, NEW, LEAVE, QUIT, MOVE, SHUTDOWN, TURN, BOARD = 'LIST', 'JOIN', 'NEW', 'LEAVE', 'QUIT', 'MOVE', 'SHUTDOWN',\
-                                                            'TURN', 'BOARD'
+LIST, JOIN, NEW, LEAVE, QUIT, MOVE, SHUTDOWN, TURN, BOARD, SPECTATE = 'LIST', 'JOIN', 'NEW', 'LEAVE', 'QUIT', 'MOVE',\
+                                                                      'SHUTDOWN', 'TURN', 'BOARD', 'SPECTATE'
 ERROR, OK, STATUS = 'ERROR', 'OK', 'STATUS'
 JOINED, YOU_ARE, LEFT, MOVED, CAPTURED, KING, WAIT, WINNER, GAME_ID = 'JOINED', 'YOU_ARE', 'LEFT', 'MOVED', 'CAPTURED',\
                                                                       'KING', 'waiting', 'WINNER', 'GAME_ID'
 
-COMMANDS = set([LIST, JOIN, NEW, LEAVE, QUIT, MOVE, BOARD, TURN, SHUTDOWN])
+COMMANDS = set([LIST, JOIN, NEW, LEAVE, QUIT, MOVE, BOARD, TURN, SHUTDOWN, SPECTATE])
 STATUSES = set([JOINED, LEFT, MOVED, CAPTURED, WINNER, YOU_ARE, BOARD, TURN, LIST, GAME_ID])
 
 
@@ -67,24 +67,40 @@ class RequestHandler(StreamRequestHandler):
                     result = [OK]
                     if cmd == QUIT:
                         if game:
-                            game.leave(player)
+                            game.leave(self)
                         break
                     elif not game and cmd == NEW:
                         game, player = self.server.new_game(self)
                     elif cmd == JOIN:
                         orig_game = None
                         if game:
-                            orig_game, orig_player = game, player
+                            orig_game = game
                         game_id = int(req.pop(0))
                         game, player = self.server.join_game(game_id, self)
                         if orig_game:
-                            orig_game.leave(orig_player)
+                            orig_game.leave(self)
+                    elif cmd == SPECTATE:
+                        orig_game = None
+                        if game:
+                            orig_game = game
+                        game_id = int(req.pop(0))
+                        game = self.server.spectate_game(game_id, self)
+                        if orig_game:
+                            orig_game.leave(self)
                     elif cmd == LIST:
-                        games = self.server.get_open_games()
-                        self.send_line('STATUS LIST ' + ' '.join(
+                        list_type = None
+                        status_prefix = 'STATUS LIST '
+                        if req:
+                            list_type = req.pop(0)
+                        if list_type and list_type == SPECTATE:
+                            games = self.server.get_unfinished_games()
+                            status_prefix += SPECTATE + ' '
+                        else:
+                            games = self.server.get_open_games()
+                        self.send_line(status_prefix + ' '.join(
                             [str(g.id) for g in games if not game or game is not g]))
                     elif game and cmd == LEAVE:
-                        game.leave(player)
+                        game.leave(self)
                         game = player = None
                     elif game and cmd == BOARD:
                         self.send_line('STATUS BOARD %s' % repr(game))
@@ -125,13 +141,17 @@ class Game:
         self.lock = RLock()
         self.players = {RED: None, BLACK: None}
         self.last_interaction = time()
+        self.spectators = []
         for player, x, y in self.board.start_positions():
             self.board.add_piece(Piece(player), (x, y))
 
-    def send_status(self, message, player=None):
-        for p in self.players:
-            if (player is None or p == player) and self.players[p]:
-                self.players[p].send_line(message)
+    def send_status(self, message, include=None, exclude=None):
+        notify_set = [handler for handler in (self.players.values() + self.spectators)
+                      if handler
+                      and (include is None or handler in include)
+                      and (exclude is None or handler not in exclude)]
+        for handler in notify_set:
+            handler.send_line(message)
 
     @game_interaction
     def join(self, player_handler):
@@ -140,20 +160,33 @@ class Game:
                 raise ServerException('no available seats')
             open_player = self.open_seats[0]
             self.players[open_player] = player_handler
-            self.send_status(' '.join([STATUS, GAME_ID, str(self.id)]), player=open_player)
-            self.send_status(' '.join([STATUS, BOARD, repr(self)]), player=open_player)
-            self.send_status(' '.join([STATUS, JOINED, open_player]), player=opponent[open_player])
-            self.send_status(' '.join([STATUS, YOU_ARE, open_player]), player=open_player)
+            joining_player = [player_handler]
+            self.send_status(' '.join([STATUS, GAME_ID, str(self.id)]), include=joining_player)
+            self.send_status(' '.join([STATUS, BOARD, repr(self)]), include=joining_player)
+            self.send_status(' '.join([STATUS, JOINED, open_player]), exclude=joining_player)
+            self.send_status(' '.join([STATUS, YOU_ARE, open_player]), include=joining_player)
             self.send_status(' '.join([STATUS, TURN, self.turn]))
             return open_player
 
-    @game_interaction
-    def leave(self, player):
+    def spectate(self, handler):
         with self.lock:
-            if player in self.players and self.players[player]:
-                self.players[player] = None
-                self.send_status(' '.join([STATUS, LEFT, player]))
-                self.send_status(' '.join([STATUS, TURN, self.turn]))
+            joining_spectator = [handler]
+            if handler not in self.spectators:
+                self.spectators.append(handler)
+                self.send_status(' '.join([STATUS, GAME_ID, str(self.id)]), include=joining_spectator)
+                self.send_status(' '.join([STATUS, BOARD, repr(self)]), include=joining_spectator)
+                self.send_status(' '.join([STATUS, TURN, self.turn]), include=joining_spectator)
+
+    @game_interaction
+    def leave(self, client):
+        with self.lock:
+            for player, handler in self.players.items():
+                if handler is client:
+                    self.players[player] = None
+                    self.send_status(' '.join([STATUS, LEFT, player]))
+                    self.send_status(' '.join([STATUS, TURN, self.turn]))
+            if client in self.spectators:
+                self.spectators.remove(client)
 
     @property
     def open_seats(self):
@@ -230,8 +263,8 @@ class Server(ThreadingTCPServer):
     def get_open_games(self):
         return [g for g in self.get_games() if g.open_seats and not g.winner]
 
-    def get_full_games(self):
-        return [g for g in self.get_games() if not g.open_seats]
+    def get_unfinished_games(self):
+        return [g for g in self.get_games() if not g.winner]
 
     def new_game(self, handler):
         with self.lock:
@@ -245,6 +278,14 @@ class Server(ThreadingTCPServer):
                 game = self.games[game_id]
                 player = game.join(handler)
                 return game, player
+            raise ServerException('game not available')
+
+    def spectate_game(self, game_id, handler):
+        with self.lock:
+            if game_id in self.games:
+                game = self.games[game_id]
+                game.spectate(handler)
+                return game
             raise ServerException('game not available')
 
 

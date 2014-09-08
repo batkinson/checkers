@@ -139,6 +139,9 @@ class Client:
     def join(self, game_id):
         self.send_line('JOIN %s' % game_id)
 
+    def spectate(self, game_id):
+        self.send_line('SPECTATE %s' % game_id)
+
     def leave(self):
         self.send_line('LEAVE')
 
