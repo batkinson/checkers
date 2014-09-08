@@ -416,13 +416,20 @@ class Game(StatusHandler):
             pygame.display.flip()
 
 if __name__ == '__main__':
-    game = None
-    log_level = log.INFO
-    show_fps = False
-    if len(sys.argv) > 2:
-        ip = sys.argv[1]
-        port = int(sys.argv[2])
-        game = Game(show_fps=show_fps, log_level=log_level, ip=ip, port=port)
-    else:
-        game = Game(show_fps=show_fps, log_level=log_level)
+
+    from argparse import ArgumentParser
+
+    arg_p = ArgumentParser(description='A network-based checkers client')
+
+    arg_p.add_argument('--host', help='server host', default='127.0.0.1')
+    arg_p.add_argument('--port', help='server port', type=int, default='5000')
+    arg_p.add_argument('--log-level', help='diagnostic logging level', choices=['DEBUG', 'INFO'], default='INFO')
+    arg_p.add_argument('--log-drag', help='log drag events', action='store_true', default=False)
+    arg_p.add_argument('--show-fps', help='show frame rate', action='store_true', default=False)
+
+    args = arg_p.parse_args(args=sys.argv[1:])
+
+    game = Game(ip=args.host, port=args.port, log_level=log.getLevelName(args.log_level), log_drag=args.log_drag,
+                show_fps=args.show_fps)
+
     game.run()
