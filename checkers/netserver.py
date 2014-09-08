@@ -15,7 +15,7 @@ LIST, JOIN, NEW, LEAVE, QUIT, MOVE, SHUTDOWN, TURN, BOARD = 'LIST', 'JOIN', 'NEW
                                                             'TURN', 'BOARD'
 ERROR, OK, STATUS = 'ERROR', 'OK', 'STATUS'
 JOINED, YOU_ARE, LEFT, MOVED, CAPTURED, KING, WAIT, WINNER, GAME_ID = 'JOINED', 'YOU_ARE', 'LEFT', 'MOVED', 'CAPTURED',\
-                                                                   'KING', 'waiting', 'WINNER', 'GAME_ID'
+                                                                      'KING', 'waiting', 'WINNER', 'GAME_ID'
 
 COMMANDS = set([LIST, JOIN, NEW, LEAVE, QUIT, MOVE, BOARD, TURN, SHUTDOWN])
 STATUSES = set([JOINED, LEFT, MOVED, CAPTURED, WINNER, YOU_ARE, BOARD, TURN, LIST, GAME_ID])
@@ -80,7 +80,7 @@ class RequestHandler(StreamRequestHandler):
                         if orig_game:
                             orig_game.leave(orig_player)
                     elif cmd == LIST:
-                        games = self.server.get_games()
+                        games = self.server.get_open_games()
                         self.send_line('STATUS LIST ' + ' '.join(
                             [str(g.id) for g in games if not game or game is not g]))
                     elif game and cmd == LEAVE:
@@ -223,7 +223,7 @@ class Server(ThreadingTCPServer):
                 if game.last_interaction < now - PRUNE_IDLE_SECS:
                     game = self.games.pop(key)
 
-    def get_games(self):
+    def get_open_games(self):
         with self.lock:
             try:
                 return [g for g in self.games.values() if g.open_seats and not g.winner]
