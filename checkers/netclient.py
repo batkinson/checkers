@@ -170,8 +170,8 @@ class NetBoard(Board):
         Board.__init__(self)
         self.turn = WAIT
         self.player = None
-        self.client = Client(ip=ip, port=port, status_handler=handler)
         log.info('trying game server at %s:%s', ip, port)
+        self.client = Client(ip=ip, port=port, status_handler=handler)
         self.connect()
 
     def update(self):
