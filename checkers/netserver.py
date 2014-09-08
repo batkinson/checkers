@@ -8,6 +8,9 @@ from functools import wraps
 import logging as log
 
 
+PRUNE_IDLE_SECS = 60 * 10  # 10 Minutes
+
+
 LIST, JOIN, NEW, LEAVE, QUIT, MOVE, SHUTDOWN, TURN, BOARD = 'LIST', 'JOIN', 'NEW', 'LEAVE', 'QUIT', 'MOVE', 'SHUTDOWN',\
                                                             'TURN', 'BOARD'
 ERROR, OK, STATUS = 'ERROR', 'OK', 'STATUS'
@@ -211,9 +214,20 @@ class Server(ThreadingTCPServer):
         log.info('starting server on port %s:%s', ip, str(port))
         ThreadingTCPServer.__init__(self, (ip, port), RequestHandler)
 
+    def _prune_idle_games(self):
+        with self.lock:
+            now = time()
+            to_prune = []
+            for key, game in self.games.items():
+                if game.last_interaction < now - PRUNE_IDLE_SECS:
+                    game = self.games.pop(key)
+
     def get_games(self):
         with self.lock:
-            return [g for g in self.games.values() if g.open_seats and not g.winner]
+            try:
+                return [g for g in self.games.values() if g.open_seats and not g.winner]
+            finally:
+                self._prune_idle_games()
 
     def new_game(self, handler):
         with self.lock:
