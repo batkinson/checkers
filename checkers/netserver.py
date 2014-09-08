@@ -3,6 +3,8 @@ import sys
 from SocketServer import ThreadingTCPServer, StreamRequestHandler
 from internals import RED, BLACK, Board, Piece, CheckersException, opponent
 from threading import RLock
+from time import time
+from functools import wraps
 import logging as log
 
 
@@ -103,6 +105,15 @@ class RequestHandler(StreamRequestHandler):
         log.debug('%s finishing', client)
 
 
+def game_interaction(fn):
+    @wraps(fn)
+    def update_interaction_time(self, *args, **kwargs):
+        result = fn(self, *args, **kwargs)
+        self.last_interaction = time()
+        return result
+    return update_interaction_time
+
+
 class Game:
 
     def __init__(self):
@@ -110,6 +121,7 @@ class Game:
         self.board = Board()
         self.lock = RLock()
         self.players = {RED: None, BLACK: None}
+        self.last_interaction = time()
         for player, x, y in self.board.start_positions():
             self.board.add_piece(Piece(player), (x, y))
 
@@ -118,6 +130,7 @@ class Game:
             if (player is None or p == player) and self.players[p]:
                 self.players[p].send_line(message)
 
+    @game_interaction
     def join(self, player_handler):
         with self.lock:
             if not self.open_seats:
@@ -130,6 +143,7 @@ class Game:
             self.send_status(' '.join([STATUS, TURN, self.turn]))
             return open_player
 
+    @game_interaction
     def leave(self, player):
         with self.lock:
             if player in self.players and self.players[player]:
@@ -158,6 +172,7 @@ class Game:
         with self.lock:
             return self.board.winner()
 
+    @game_interaction
     def make_move(self, src, dst, player):
         with self.lock:
             if self.open_seats:
