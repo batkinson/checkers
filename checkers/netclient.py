@@ -138,13 +138,13 @@ class Client:
         log.debug("=> %s", line)
 
     def send_list(self, *args):
-        self.send_line(' '.join(map(str, *args)))
+        self.send_line(' '.join(map(str, args)))
 
     def list(self, list_type=None):
         list_cmd = [LIST]
         if list_type:
             list_cmd.append(list_type)
-        self.send_list(list_cmd)
+        self.send_list(*list_cmd)
 
     def join(self, game_id):
         self.send_list(JOIN, game_id)
