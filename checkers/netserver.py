@@ -51,15 +51,16 @@ class RequestHandler(StreamRequestHandler):
 
         while True:
 
-            req = self.rfile.readline().strip()
+            req = self.rfile.readline()
 
+            if not req:
+                break;
+
+            req = req.strip()
+            
             log.debug('%s => %s', client, req)
 
             req = req.split()
-
-            if not req:
-                continue
-
             cmd = req.pop(0)
 
             try:
