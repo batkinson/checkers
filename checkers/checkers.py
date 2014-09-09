@@ -36,7 +36,7 @@ class Images:
     image_cache = {}
 
     @classmethod
-    def load(cls, name, color_key=None):
+    def load(cls, name):
         """ Load image and return image object"""
         fullname = os.path.join('..', 'images', name)
         if fullname in cls.image_cache:
@@ -44,8 +44,6 @@ class Images:
         try:
             log.debug('loading: %s', fullname)
             image = pygame.image.load(fullname)
-            if color_key:
-                image.set_colorkey(color_key)   # make all brown transparent
             if image.get_alpha() is None:
                 image = image.convert()
             else:
@@ -81,30 +79,23 @@ class PieceSprite(Piece, Sprite):
     def __init__(self, player):
         Sprite.__init__(self)
         Piece.__init__(self, player)
-        screen = pygame.display.get_surface()
-        self.area = screen.get_rect()
-        if player == RED:
-            self.image, self.rect = Images.load('red-piece.png')
-        elif player == BLACK:
-            self.image, self.rect = Images.load('black-piece.png')
-        else:
-            print 'Invalid player name: ', player
-            raise SystemExit
-        self.player = player
-        self.type = "man"
+        self.image = pygame.Surface((TILE_WIDTH, TILE_WIDTH), pygame.SRCALPHA, 32).convert_alpha()
+        self.rect = self.image.get_rect()
 
     def update_from_board(self):
-
-        if self.king:
-            if self.player == RED:
-                self.image, _ = Images.load('red-piece-king.png')
-            elif self.player == BLACK:
-                self.image, _ = Images.load('black-piece-king.png')
-
         self.rect.centerx, self.rect.centery = [game_to_screen(v) for v in self.location]
 
-    def update(self, position):
-        self.rect.centerx, self.rect.centery = position
+    def update(self, turn):
+        self.image = pygame.Surface((TILE_WIDTH, TILE_WIDTH), pygame.SRCALPHA, 32).convert_alpha()
+        if self.player == turn:
+            image, image_rect = Images.load('piece-corona.png')
+            self.image.blit(image, image_rect)
+        image_name = '%s-piece' % self.player
+        if self.king:
+            image_name += '-king'
+        image_name += '.png'
+        image, image_rect = Images.load(image_name)
+        self.image.blit(image, image_rect)
 
 
 class Square(Rect):
@@ -250,7 +241,8 @@ class Game(StatusHandler):
 
     def _drag_piece(self):
         #  Until button is let go, move the piece with the mouse position
-        self.piece_selected.update(pygame.mouse.get_pos())
+        rect = self.piece_selected.sprite.rect
+        rect.centerx, rect.centery = pygame.mouse.get_pos()
         if self.log_drag:
             log.debug('updated piece to %s', pygame.mouse.get_pos())
 
@@ -313,6 +305,12 @@ class Game(StatusHandler):
         else:
             self.winner_text.text = ''
 
+        if not self.piece_selected and self.player == self.game.turn:
+            highlight_player = self.game.turn
+        else:
+            highlight_player = None
+        self.pieces.update(highlight_player)
+        self.piece_selected.update(self.game.turn)
         self.bg_text.update()
         self.fg_text.update()
 
