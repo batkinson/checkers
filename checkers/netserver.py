@@ -256,6 +256,7 @@ class Server(ThreadingTCPServer):
             for key, game in self.games.items():
                 if game.last_interaction < now - self.prune_inactive:
                     self.games.pop(key)
+                    log.debug('abandoning game %s after %s seconds of inactivity', game.id, self.prune_inactive)
 
     def get_games(self):
         with self.lock:
