@@ -241,11 +241,12 @@ class Game:
 
 class Server(ThreadingTCPServer):
 
-    def __init__(self, log_level=log.INFO, ip='0.0.0.0', port=5000):
+    def __init__(self, log_level=log.INFO, ip='0.0.0.0', port=5000, prune_inactive=PRUNE_IDLE_SECS):
         log.basicConfig(level=log_level)
         self.games = {}
         self.lock = RLock()
         self.allow_reuse_address = True
+        self.prune_inactive = prune_inactive
         log.info('starting server on port %s:%s', ip, str(port))
         ThreadingTCPServer.__init__(self, (ip, port), RequestHandler)
 
@@ -253,7 +254,7 @@ class Server(ThreadingTCPServer):
         with self.lock:
             now = time()
             for key, game in self.games.items():
-                if game.last_interaction < now - PRUNE_IDLE_SECS:
+                if game.last_interaction < now - self.prune_inactive:
                     self.games.pop(key)
 
     def get_games(self):
@@ -299,11 +300,14 @@ if __name__ == '__main__':
     arg_p.add_argument('--interface', help='interface to bind to', default='0.0.0.0')
     arg_p.add_argument('--port', help='port to bind to', type=int, default='5000')
     arg_p.add_argument('--log-level', help='diagnostic logging level', choices=['DEBUG', 'INFO'], default='INFO')
+    arg_p.add_argument('--prune-inactive', help='prune games after n seconds inactive', type=int,
+                       default=PRUNE_IDLE_SECS)
 
     args = arg_p.parse_args(args=sys.argv[1:])
 
     try:
-        server = Server(ip=args.interface, port=args.port, log_level=log.getLevelName(args.log_level))
+        server = Server(ip=args.interface, port=args.port, log_level=log.getLevelName(args.log_level),
+                        prune_inactive=args.prune_inactive)
         server.serve_forever()
     except Exception as e:
         log.exception(e)
