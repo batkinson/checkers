@@ -8,7 +8,7 @@ from functools import wraps
 import logging as log
 
 
-PRUNE_IDLE_SECS = 60 * 10  # 10 Minutes
+PRUNE_IDLE_SECS = 60 * 60  # 60 Minutes
 
 
 LIST, JOIN, NEW, LEAVE, QUIT, MOVE, SHUTDOWN, TURN, BOARD, SPECTATE = 'LIST', 'JOIN', 'NEW', 'LEAVE', 'QUIT', 'MOVE',\
