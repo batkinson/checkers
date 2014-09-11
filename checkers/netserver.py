@@ -200,11 +200,12 @@ class Game:
     @game_interaction
     def leave(self, client):
         with self.lock:
+            leaving_client = [client]
             for player, handler in self.players.items():
                 if handler is client:
                     self.players[player] = None
-                    self.send_status(' '.join([STATUS, LEFT, player]))
-                    self.send_status(' '.join([STATUS, TURN, self.turn]))
+                    self.send_status(' '.join([STATUS, LEFT, player]), exclude=leaving_client)
+                    self.send_status(' '.join([STATUS, TURN, self.turn]), exclude=leaving_client)
             if client in self.spectators:
                 self.spectators.remove(client)
 
