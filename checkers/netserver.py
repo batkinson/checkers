@@ -31,21 +31,22 @@ class RequestHandler(StreamRequestHandler):
 
     def __init__(self, *args, **kwargs):
         StreamRequestHandler.__init__(self, *args, **kwargs)
+        self.client = None
         self.player = None
         self.game = None
 
     def send_line(self, line):
         self.wfile.write(line + '\r\n')
-        log.debug('%s <= %s', ':'.join(map(str, self.client_address)), line)
+        log.debug('%s <= %s', self.client, line)
 
     def flush(self):
         self.wfile.flush()
 
     def handle(self):
 
-        client = ':'.join(map(str, self.client_address))
+        self.client = ':'.join(map(str, self.client_address))
 
-        log.debug('%s connected', client)
+        log.debug('%s connected', self.client)
 
         game = player = None
 
@@ -58,7 +59,7 @@ class RequestHandler(StreamRequestHandler):
 
             req = req.strip()
             
-            log.debug('%s => %s', client, req)
+            log.debug('%s => %s', self.client, req)
 
             req = req.split()
             cmd = req.pop(0)
@@ -122,7 +123,7 @@ class RequestHandler(StreamRequestHandler):
             self.send_line(' '.join(result))
             self.flush()
 
-        log.debug('%s finishing', client)
+        log.debug('%s finishing', self.client)
 
 
 def game_interaction(fn):
