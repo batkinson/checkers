@@ -27,6 +27,17 @@ class ServerException(Exception):
         Exception.__init__(*args, **kwargs)
 
 
+def cleanup_on_failure(fn):
+    @wraps(fn)
+    def remove_handler(self, *args, **kwargs):
+        try:
+            return fn(self, *args, **kwargs)
+        except Exception as e:
+            self.cleanup()
+            raise e
+    return remove_handler
+
+
 class RequestHandler(StreamRequestHandler):
 
     def __init__(self, *args, **kwargs):
@@ -35,12 +46,20 @@ class RequestHandler(StreamRequestHandler):
         self.player = None
         self.game = None
 
+    @cleanup_on_failure
     def send_line(self, line):
         self.wfile.write(line + '\r\n')
         log.debug('%s <= %s', self.client, line)
 
+    @cleanup_on_failure
     def flush(self):
         self.wfile.flush()
+
+    def cleanup(self):
+        if self.game:
+            log.debug('%s leaving game', self.client)
+            self.game.leave(self)
+            self.game = None
 
     def handle(self):
 
@@ -48,7 +67,7 @@ class RequestHandler(StreamRequestHandler):
 
         log.debug('%s connected', self.client)
 
-        game = player = None
+        self.game = self.player = None
 
         while True:
 
@@ -68,25 +87,23 @@ class RequestHandler(StreamRequestHandler):
                 if cmd in COMMANDS:
                     result = [OK]
                     if cmd == QUIT:
-                        if game:
-                            game.leave(self)
                         break
-                    elif not game and cmd == NEW:
-                        game, player = self.server.new_game(self)
+                    elif not self.game and cmd == NEW:
+                        self.game, self.player = self.server.new_game(self)
                     elif cmd == JOIN:
                         orig_game = None
-                        if game:
-                            orig_game = game
+                        if self.game:
+                            orig_game = self.game
                         game_id = int(req.pop(0))
-                        game, player = self.server.join_game(game_id, self)
+                        self.game, self.player = self.server.join_game(game_id, self)
                         if orig_game:
                             orig_game.leave(self)
                     elif cmd == SPECTATE:
                         orig_game = None
-                        if game:
-                            orig_game = game
+                        if self.game:
+                            orig_game = self.game
                         game_id = int(req.pop(0))
-                        game = self.server.spectate_game(game_id, self)
+                        self.game = self.server.spectate_game(game_id, self)
                         if orig_game:
                             orig_game.leave(self)
                     elif cmd == LIST:
@@ -100,17 +117,17 @@ class RequestHandler(StreamRequestHandler):
                         else:
                             games = self.server.get_open_games()
                         self.send_line(status_prefix + ' '.join(
-                            [str(g.id) for g in games if not game or game is not g]))
-                    elif game and cmd == LEAVE:
-                        game.leave(self)
-                        game = player = None
-                    elif game and cmd == BOARD:
-                        self.send_line('STATUS BOARD %s' % repr(game))
-                    elif game and cmd == MOVE:
+                            [str(g.id) for g in games if not self.game or self.game is not g]))
+                    elif self.game and cmd == LEAVE:
+                        self.game.leave(self)
+                        self.game = self.player = None
+                    elif self.game and cmd == BOARD:
+                        self.send_line('STATUS BOARD %s' % repr(self.game))
+                    elif self.game and cmd == MOVE:
                         src, dst = (int(req.pop(0)), int(req.pop(0))), (int(req.pop(0)), int(req.pop(0)))
-                        game.make_move(src, dst, player)
-                    elif game and cmd == TURN:
-                        self.send_line('STATUS TURN %s' % game.turn)
+                        self.game.make_move(src, dst, self.player)
+                    elif self.game and cmd == TURN:
+                        self.send_line('STATUS TURN %s' % self.game.turn)
                     elif cmd == SHUTDOWN:
                         self.server.shutdown()
                     else:
@@ -124,6 +141,7 @@ class RequestHandler(StreamRequestHandler):
             self.flush()
 
         log.debug('%s finishing', self.client)
+        self.cleanup()
 
 
 def game_interaction(fn):
