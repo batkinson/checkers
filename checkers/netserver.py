@@ -54,7 +54,7 @@ class RequestHandler(StreamRequestHandler):
             req = self.rfile.readline()
 
             if not req:
-                break;
+                break
 
             req = req.strip()
             
