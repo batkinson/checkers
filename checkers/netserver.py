@@ -5,6 +5,8 @@ from internals import RED, BLACK, Board, Piece, CheckersException
 from threading import RLock
 from time import time
 from functools import wraps
+from socket import inet_aton, gethostbyname, gethostname
+from zeroconf import Zeroconf, ServiceInfo
 import logging as log
 
 
@@ -270,6 +272,17 @@ class Server(ThreadingTCPServer):
         ThreadingTCPServer.__init__(self, (ip, port), RequestHandler)
         log.info('started server on %s:%s', self.server_address[0], self.server_address[1])
 
+    def zeroconf_register(self):
+        self.zero_conf = Zeroconf()
+        self.service_info = ServiceInfo("_checkers._tcp.local.", "Checkers._checkers._tcp.local.",
+                                        inet_aton(self.server_address[0]), self.server_address[1], 0, 0, {},
+                                        server=gethostname() + '.local')
+        self.zero_conf.registerService(self.service_info)
+
+    def zeroconf_unregister(self):
+        self.zero_conf.unregisterAllServices()
+        self.zero_conf.close()
+
     def _prune_idle_games(self):
         with self.lock:
             now = time()
@@ -329,6 +342,9 @@ if __name__ == '__main__':
     try:
         server = Server(ip=args.interface, port=args.port, log_level=log.getLevelName(args.log_level),
                         prune_inactive=args.prune_inactive)
+        server.zeroconf_register()
         server.serve_forever()
     except Exception as e:
         log.exception(e)
+    finally:
+        server.zeroconf_unregister()
