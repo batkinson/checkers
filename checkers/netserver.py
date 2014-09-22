@@ -267,8 +267,8 @@ class Server(ThreadingTCPServer):
         self.lock = RLock()
         self.allow_reuse_address = True
         self.prune_inactive = prune_inactive
-        log.info('starting server on port %s:%s', ip, str(port))
         ThreadingTCPServer.__init__(self, (ip, port), RequestHandler)
+        log.info('started server on %s:%s', self.server_address[0], self.server_address[1])
 
     def _prune_idle_games(self):
         with self.lock:
@@ -319,7 +319,7 @@ if __name__ == '__main__':
     arg_p = ArgumentParser(description='A network-based checkers server')
 
     arg_p.add_argument('--interface', help='interface to bind to', default='0.0.0.0')
-    arg_p.add_argument('--port', help='port to bind to', type=int, default='5000')
+    arg_p.add_argument('--port', help='port to bind to', type=int, default='0')
     arg_p.add_argument('--log-level', help='diagnostic logging level', choices=['DEBUG', 'INFO'], default='INFO')
     arg_p.add_argument('--prune-inactive', help='prune games after n seconds inactive', type=int,
                        default=PRUNE_IDLE_SECS)
