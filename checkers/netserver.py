@@ -336,7 +336,7 @@ if __name__ == '__main__':
     arg_p.add_argument('--log-level', help='diagnostic logging level', choices=['DEBUG', 'INFO'], default='INFO')
     arg_p.add_argument('--prune-inactive', help='prune games after n seconds inactive', type=int,
                        default=PRUNE_IDLE_SECS)
-    arg_p.add_argument('--zeroconf', help='register as a zeroconf service', type=bool, default='false')
+    arg_p.add_argument('--zeroconf', help='register as a zeroconf service', action='store_true', default=False)
 
     args = arg_p.parse_args(args=sys.argv[1:])
 
@@ -344,10 +344,12 @@ if __name__ == '__main__':
         server = Server(ip=args.interface, port=args.port, log_level=log.getLevelName(args.log_level),
                         prune_inactive=args.prune_inactive)
         if args.zeroconf:
+            log.info('registering service for zeroconf')
             server.zeroconf_register()
         server.serve_forever()
     except Exception as e:
         log.exception(e)
     finally:
         if args.zeroconf:
+            log.info('unregistering zeroconf services')
             server.zeroconf_unregister()
