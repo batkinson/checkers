@@ -5,7 +5,7 @@ from internals import RED, BLACK, Board, Piece, CheckersException
 from threading import RLock
 from time import time
 from functools import wraps
-from socket import inet_aton, gethostbyname, gethostname
+from socket import inet_aton, gethostname
 from zeroconf import Zeroconf, ServiceInfo
 import logging as log
 
@@ -336,15 +336,18 @@ if __name__ == '__main__':
     arg_p.add_argument('--log-level', help='diagnostic logging level', choices=['DEBUG', 'INFO'], default='INFO')
     arg_p.add_argument('--prune-inactive', help='prune games after n seconds inactive', type=int,
                        default=PRUNE_IDLE_SECS)
+    arg_p.add_argument('--zeroconf', help='register as a zeroconf service', type=bool, default='false')
 
     args = arg_p.parse_args(args=sys.argv[1:])
 
     try:
         server = Server(ip=args.interface, port=args.port, log_level=log.getLevelName(args.log_level),
                         prune_inactive=args.prune_inactive)
-        server.zeroconf_register()
+        if args.zeroconf:
+            server.zeroconf_register()
         server.serve_forever()
     except Exception as e:
         log.exception(e)
     finally:
-        server.zeroconf_unregister()
+        if args.zeroconf:
+            server.zeroconf_unregister()
