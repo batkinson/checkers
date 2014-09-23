@@ -425,7 +425,7 @@ if __name__ == '__main__':
 
     arg_p = ArgumentParser(description='A network-based checkers client')
 
-    arg_p.add_argument('--host', help='server host', default='127.0.0.1')
+    arg_p.add_argument('--host', help='server host')
     arg_p.add_argument('--port', help='server port', type=int, default='5000')
     arg_p.add_argument('--log-level', help='diagnostic logging level', choices=['DEBUG', 'INFO'], default='INFO')
     arg_p.add_argument('--log-drag', help='log drag events', action='store_true', default=False)
@@ -434,7 +434,39 @@ if __name__ == '__main__':
 
     args = arg_p.parse_args(args=sys.argv[1:])
 
-    game = Game(ip=args.host, port=args.port, log_level=log.getLevelName(args.log_level), log_drag=args.log_drag,
-                show_fps=args.show_fps, spectate=args.spectate)
+    def start_game(*args, **kwargs):
+        game = Game(*args, **kwargs)
+        game.run()
 
-    game.run()
+    if not args.host:
+        from threading import Thread
+        from zeroconf import Zeroconf, ServiceBrowser
+        from time import sleep
+        game_thread = None
+        zeroconf = Zeroconf()
+        class AutoDiscoveryListener:
+            def removeService(self, zc, type, name):
+                pass
+            def addService(self, zc, type, name):
+                global game_thread
+                def start_game_zeroconf():
+                    from socket import inet_ntoa
+                    info = zc.getServiceInfo(type, name)
+                    host, port = inet_ntoa(info.address), info.port
+                    start_game(ip=host, port=port, log_level=log.getLevelName(args.log_level), log_drag=args.log_drag,
+                               show_fps=args.show_fps, spectate=args.spectate)
+                    zc.close()
+                game_thread = Thread(target=start_game_zeroconf)
+                game_thread.start()
+
+        log.info('attempting to auto-discover game server...')
+        service_browser = ServiceBrowser(zeroconf, '_checkers._tcp.local.', AutoDiscoveryListener())
+        WAIT_TIME = 30
+        sleep(WAIT_TIME)
+        if game_thread is None:
+            log.info('auto-discovery failed after %s seconds' % WAIT_TIME)
+        else:
+            game_thread.join()
+    else:
+        start_game(ip=args.host, port=args.port, log_level=log.getLevelName(args.log_level), log_drag=args.log_drag,
+                   show_fps=args.show_fps, spectate=args.spectate)
