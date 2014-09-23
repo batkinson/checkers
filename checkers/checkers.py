@@ -132,9 +132,8 @@ class Text(Sprite):
 
 class Game(StatusHandler):
 
-    def __init__(self, title='Checkers', log_level=log.INFO, log_drag=False, show_fps=False, ip='127.0.0.1', port=5000,
+    def __init__(self, title='Checkers', log_drag=False, show_fps=False, ip='127.0.0.1', port=5000,
                  spectate=False):
-        log.basicConfig(level=log_level)
         self.player = None
         self.log_drag = log_drag
         self.show_fps = show_fps
@@ -439,6 +438,8 @@ if __name__ == '__main__':
 
     args = arg_p.parse_args(args=sys.argv[1:])
 
+    log.basicConfig(level=log.getLevelName(args.log_level))
+
     def start_game(*args, **kwargs):
         game = Game(*args, **kwargs)
         game.run()
@@ -454,7 +455,7 @@ if __name__ == '__main__':
                 def start_game_zeroconf():
                     info = zc.getServiceInfo(type, name)
                     host, port = inet_ntoa(info.address), info.port
-                    start_game(ip=host, port=port, log_level=log.getLevelName(args.log_level), log_drag=args.log_drag,
+                    start_game(ip=host, port=port, log_drag=args.log_drag,
                                show_fps=args.show_fps, spectate=args.spectate)
                     zc.close()
                 if not game_thread:
@@ -471,5 +472,5 @@ if __name__ == '__main__':
         else:
             game_thread.join()
     else:
-        start_game(ip=args.host, port=args.port, log_level=log.getLevelName(args.log_level), log_drag=args.log_drag,
+        start_game(ip=args.host, port=args.port, log_drag=args.log_drag,
                    show_fps=args.show_fps, spectate=args.spectate)
