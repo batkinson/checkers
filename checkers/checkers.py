@@ -15,7 +15,12 @@ from pygame.constants import QUIT, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 from pygame.time import Clock
 from internals import Board, Piece, RED, BLACK, InvalidMoveException, players
 from netclient import NetBoard, StatusHandler, SPECTATE
+from socket import inet_ntoa
+from threading import Thread
+from time import sleep
+from zeroconf import Zeroconf, ServiceBrowser
 
+AUTO_DISCOVERY_WAIT = 30
 WHITE = (255, 255, 255)
 TILE_WIDTH = 75
 BORDER_WIDTH = 50
@@ -439,9 +444,6 @@ if __name__ == '__main__':
         game.run()
 
     if not args.host:
-        from threading import Thread
-        from zeroconf import Zeroconf, ServiceBrowser
-        from time import sleep
         game_thread = None
         zeroconf = Zeroconf()
         class AutoDiscoveryListener:
@@ -450,21 +452,22 @@ if __name__ == '__main__':
             def addService(self, zc, type, name):
                 global game_thread
                 def start_game_zeroconf():
-                    from socket import inet_ntoa
                     info = zc.getServiceInfo(type, name)
                     host, port = inet_ntoa(info.address), info.port
                     start_game(ip=host, port=port, log_level=log.getLevelName(args.log_level), log_drag=args.log_drag,
                                show_fps=args.show_fps, spectate=args.spectate)
                     zc.close()
-                game_thread = Thread(target=start_game_zeroconf)
-                game_thread.start()
+                if not game_thread:
+                    game_thread = Thread(target=start_game_zeroconf)
+                    game_thread.start()
 
         log.info('attempting to auto-discover game server...')
         service_browser = ServiceBrowser(zeroconf, '_checkers._tcp.local.', AutoDiscoveryListener())
-        WAIT_TIME = 30
-        sleep(WAIT_TIME)
+
+        sleep(AUTO_DISCOVERY_WAIT)
+
         if game_thread is None:
-            log.info('auto-discovery failed after %s seconds' % WAIT_TIME)
+            log.info('auto-discovery failed after %s seconds' % AUTO_DISCOVERY_WAIT)
         else:
             game_thread.join()
     else:
