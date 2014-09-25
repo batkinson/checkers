@@ -97,7 +97,7 @@ class RequestHandler(StreamRequestHandler):
                         orig_game = None
                         if self.game:
                             orig_game = self.game
-                        game_id = int(req.pop(0))
+                        game_id = req.pop(0)
                         self.game, self.player = self.server.join_game(game_id, self)
                         if orig_game:
                             orig_game.leave(self)
@@ -105,7 +105,7 @@ class RequestHandler(StreamRequestHandler):
                         orig_game = None
                         if self.game:
                             orig_game = self.game
-                        game_id = int(req.pop(0))
+                        game_id = req.pop(0)
                         self.game = self.server.spectate_game(game_id, self)
                         if orig_game:
                             orig_game.leave(self)
