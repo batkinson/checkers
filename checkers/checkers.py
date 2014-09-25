@@ -245,6 +245,8 @@ class Game(StatusHandler):
 
     def _drag_piece(self):
         #  Until button is let go, move the piece with the mouse position
+        if self.log_drag:
+            log.debug('dragging')
         rect = self.piece_selected.sprite.rect
         rect.centerx, rect.centery = pygame.mouse.get_pos()
         if self.log_drag:
@@ -410,8 +412,6 @@ class Game(StatusHandler):
                     self._drop_piece(event)
 
                 if pygame.event.get_grab():          # drag selected piece around
-                    if self.log_drag:
-                        log.debug('dragging')
                     self._drag_piece()
 
             self._update()
