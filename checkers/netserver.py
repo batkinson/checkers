@@ -5,6 +5,7 @@ from internals import RED, BLACK, Board, Piece, CheckersException
 from threading import RLock
 from time import time
 from functools import wraps
+from idgen import gen_id
 from socket import inet_aton, gethostname
 from zeroconf import Zeroconf, ServiceInfo
 import logging as log
@@ -158,7 +159,7 @@ def game_interaction(fn):
 class Game:
 
     def __init__(self):
-        self.id = id(self)
+        self.id = gen_id()
         self.board = Board()
         self.lock = RLock()
         self.players = {RED: None, BLACK: None}
