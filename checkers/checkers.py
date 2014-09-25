@@ -132,8 +132,8 @@ class Text(Sprite):
 
 class Game(StatusHandler):
 
-    def __init__(self, title='Checkers', log_drag=False, show_fps=False, ip='127.0.0.1', port=5000,
-                 spectate=False):
+    def __init__(self, title='Checkers', log_drag=False, show_fps=False, ip='127.0.0.1', port=5000, spectate=False):
+        self.game_running = True
         self.player = None
         self.log_drag = log_drag
         self.show_fps = show_fps
@@ -225,7 +225,7 @@ class Game(StatusHandler):
     def _quit(self):
         log.debug('quitting')
         self.game.client.quit()
-        sys.exit(0)
+        self.game_running = False
 
     def _select_piece(self, event):
         # select the piece by seeing if the piece collides with cursor
@@ -392,7 +392,7 @@ class Game(StatusHandler):
         self.fps_clock = Clock()
 
         # Event loop
-        while True:
+        while self.game_running:
 
             self._clear_items()
 
