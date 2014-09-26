@@ -436,7 +436,7 @@ if __name__ == '__main__':
     arg_p.add_argument('--show-fps', help='show frame rate', action='store_true', default=False)
     arg_p.add_argument('--spectate', help='attempt to auto-spectate', action='store_true', default=False)
 
-    args = arg_p.parse_args(args=sys.argv[1:])
+    args = arg_p.parse_args()
 
     log.basicConfig(level=log.getLevelName(args.log_level))
 
