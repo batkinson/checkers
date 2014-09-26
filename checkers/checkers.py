@@ -16,10 +16,9 @@ from pygame.time import Clock
 from internals import Board, Piece, RED, BLACK, InvalidMoveException, players
 from netclient import NetBoard, StatusHandler, SPECTATE
 from socket import inet_ntoa
-from threading import Thread
-from time import sleep
 from zeroconf import Zeroconf, ServiceBrowser
 
+AUTO_DISCOVERY_TYPE = '_checkers._tcp'
 AUTO_DISCOVERY_WAIT = 30
 WHITE = (255, 255, 255)
 TILE_WIDTH = 75
@@ -423,54 +422,74 @@ class Game(StatusHandler):
             # TODO: Use display.update instead
             pygame.display.flip()
 
+        log.debug('finishing game loop')
+
+
+class ServerFinder:
+
+    def __init__(self):
+        self.servers = []
+
+    @staticmethod
+    def _get_address(zc, type, name):
+        info = zc.getServiceInfo(type, name)
+        address = dict(ip=inet_ntoa(info.address), port=info.port)
+        return address
+
+    def removeService(self, zc, type, name):
+        log.debug("del service type: '%s', name: '%s'" % (type, name))
+        self.servers.remove(self._get_address(zc, type, name))
+
+    def addService(self, zc, type, name):
+        log.debug("add service type: '%s', name: '%s'" % (type, name))
+        self.servers.append(self._get_address(zc, type, name))
+        if self.servers:
+            log.debug('shutting down auto-discovery')
+            zc.close()
+
+    def find_servers(self, timeout=AUTO_DISCOVERY_WAIT):
+        log.info('searching for game servers')
+        service_browser = ServiceBrowser(Zeroconf(), '%s.local.' % AUTO_DISCOVERY_TYPE, self)
+        service_browser.join(timeout=timeout)
+        return self.servers
+
+
 if __name__ == '__main__':
 
     from argparse import ArgumentParser
 
-    arg_p = ArgumentParser(description='A network-based checkers client')
+    def parse_arguments():
+        arg_p = ArgumentParser(description='A network-based checkers client')
+        arg_p.add_argument('--host', help='server host')
+        arg_p.add_argument('--port', help='server port', type=int)
+        arg_p.add_argument('--log-level', help='diagnostic logging level', choices=['DEBUG', 'INFO'], default='INFO')
+        arg_p.add_argument('--log-drag', help='log drag events', action='store_true', default=False)
+        arg_p.add_argument('--show-fps', help='show frame rate', action='store_true', default=False)
+        arg_p.add_argument('--spectate', help='attempt to auto-spectate', action='store_true', default=False)
+        return arg_p.parse_args()
 
-    arg_p.add_argument('--host', help='server host')
-    arg_p.add_argument('--port', help='server port', type=int, default='5000')
-    arg_p.add_argument('--log-level', help='diagnostic logging level', choices=['DEBUG', 'INFO'], default='INFO')
-    arg_p.add_argument('--log-drag', help='log drag events', action='store_true', default=False)
-    arg_p.add_argument('--show-fps', help='show frame rate', action='store_true', default=False)
-    arg_p.add_argument('--spectate', help='attempt to auto-spectate', action='store_true', default=False)
+    def configure_logging(level):
+        log.basicConfig(level=log.getLevelName(level))
 
-    args = arg_p.parse_args()
-
-    log.basicConfig(level=log.getLevelName(args.log_level))
-
-    def start_game(*args, **kwargs):
-        game = Game(*args, **kwargs)
+    def start_game(**kwargs):
+        game = Game(**kwargs)
         game.run()
 
-    if not args.host:
-        game_thread = None
-        zeroconf = Zeroconf()
-        class AutoDiscoveryListener:
-            def removeService(self, zc, type, name):
-                pass
-            def addService(self, zc, type, name):
-                global game_thread
-                def start_game_zeroconf():
-                    info = zc.getServiceInfo(type, name)
-                    host, port = inet_ntoa(info.address), info.port
-                    start_game(ip=host, port=port, log_drag=args.log_drag,
-                               show_fps=args.show_fps, spectate=args.spectate)
-                    zc.close()
-                if not game_thread:
-                    game_thread = Thread(target=start_game_zeroconf)
-                    game_thread.start()
+    args = parse_arguments()
+    configure_logging(args.log_level)
+    game_args = dict(log_drag=args.log_drag, show_fps=args.show_fps, spectate=args.spectate)
 
-        log.info('attempting to auto-discover game server...')
-        service_browser = ServiceBrowser(zeroconf, '_checkers._tcp.local.', AutoDiscoveryListener())
-
-        sleep(AUTO_DISCOVERY_WAIT)
-
-        if game_thread is None:
-            log.info('auto-discovery failed after %s seconds' % AUTO_DISCOVERY_WAIT)
+    if not (args.host or args.port):
+        services = ServerFinder().find_servers()
+        if services:
+            game_args.update(services[0])
         else:
-            game_thread.join()
+            log.info('failed to locate a checkers server')
+            sys.exit(1)
     else:
-        start_game(ip=args.host, port=args.port, log_drag=args.log_drag,
-                   show_fps=args.show_fps, spectate=args.spectate)
+        if args.host:
+            game_args['ip'] = args.host
+        elif args.port:
+            game_args['port'] = args.port
+
+    start_game(**game_args)
