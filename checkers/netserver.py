@@ -271,18 +271,8 @@ class Server(ThreadingTCPServer):
         self.allow_reuse_address = True
         self.prune_inactive = prune_inactive
         ThreadingTCPServer.__init__(self, (ip, port), RequestHandler)
-        log.info('started server on %s:%s', self.server_address[0], self.server_address[1])
-
-    def zeroconf_register(self):
-        self.zero_conf = Zeroconf()
-        self.service_info = ServiceInfo("_checkers._tcp.local.", "Checkers._checkers._tcp.local.",
-                                        inet_aton(self.server_address[0]), self.server_address[1], 0, 0, {},
-                                        server=gethostname() + '.local')
-        self.zero_conf.registerService(self.service_info)
-
-    def zeroconf_unregister(self):
-        self.zero_conf.unregisterAllServices()
-        self.zero_conf.close()
+        self.host, self.port = self.server_address
+        log.info('started server on %s:%s', self.host, self.port)
 
     def _prune_idle_games(self):
         with self.lock:
@@ -326,31 +316,51 @@ class Server(ThreadingTCPServer):
             raise ServerException('game not available')
 
 
+class ServerPublisher:
+
+    def __init__(self):
+        self.zero_conf = Zeroconf()
+
+    def publish(self, host, port):
+        log.debug('publishing server at %s:%s' % (host, port))
+        hostname = gethostname()
+        service_info = ServiceInfo("_checkers._tcp.local.", "%s._checkers._tcp.local." % hostname,
+                                   inet_aton(host), port, 0, 0, {}, server=hostname + '.local')
+        self.zero_conf.registerService(service_info)
+
+    def shutdown(self):
+        log.debug('shutting down server publisher')
+        self.zero_conf.unregisterAllServices()
+        self.zero_conf.close()
+
+
 if __name__ == '__main__':
 
+    import atexit
     from argparse import ArgumentParser
 
-    arg_p = ArgumentParser(description='A network-based checkers server')
+    def parse_arguments():
+        arg_p = ArgumentParser(description='A network-based checkers server')
+        arg_p.add_argument('--interface', help='interface to bind to', default='0.0.0.0')
+        arg_p.add_argument('--port', help='port to bind to', type=int, default='0')
+        arg_p.add_argument('--log-level', help='diagnostic logging level', choices=['DEBUG', 'INFO'], default='INFO')
+        arg_p.add_argument('--prune-inactive', help='prune games after n seconds inactive', type=int,
+                           default=PRUNE_IDLE_SECS)
+        arg_p.add_argument('--zeroconf', help='register as a zeroconf service', action='store_true', default=False)
+        return arg_p.parse_args()
 
-    arg_p.add_argument('--interface', help='interface to bind to', default='0.0.0.0')
-    arg_p.add_argument('--port', help='port to bind to', type=int, default='0')
-    arg_p.add_argument('--log-level', help='diagnostic logging level', choices=['DEBUG', 'INFO'], default='INFO')
-    arg_p.add_argument('--prune-inactive', help='prune games after n seconds inactive', type=int,
-                       default=PRUNE_IDLE_SECS)
-    arg_p.add_argument('--zeroconf', help='register as a zeroconf service', action='store_true', default=False)
+    def publish_server(server):
+        server_publisher = ServerPublisher()
+        server_publisher.publish(server.host, server.port)
+        atexit.register(server_publisher.shutdown)
 
-    args = arg_p.parse_args(args=sys.argv[1:])
+    args = parse_arguments()
 
     try:
         server = Server(ip=args.interface, port=args.port, log_level=log.getLevelName(args.log_level),
                         prune_inactive=args.prune_inactive)
         if args.zeroconf:
-            log.info('registering service for zeroconf')
-            server.zeroconf_register()
+            publish_server(server)
         server.serve_forever()
     except Exception as e:
         log.exception(e)
-    finally:
-        if args.zeroconf:
-            log.info('unregistering zeroconf services')
-            server.zeroconf_unregister()
