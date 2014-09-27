@@ -4,7 +4,7 @@ It's just what it sounds like: a simple checkers game. I started this project
 with a fellow Hacker School attendee to explore and gain experience with pygame
 and python software development tools like nosetest and travis-ci.
 
-[Game Screen](images/screenshot.png)
+[Game Screen](images/screenshot.png?raw=true)
 
 ## Requirements
 
