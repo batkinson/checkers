@@ -8,6 +8,6 @@ before_install:
   - sudo apt-get install -qq python-pygame
 install: pip install -r requirements.txt
 # command to run tests, e.g. python setup.py test
-script:  nosetests
+script:  nosetests --with-coverage
 virtualenv:
     system_site_packages: true
