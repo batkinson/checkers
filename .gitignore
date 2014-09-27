@@ -1,5 +1,7 @@
+.coverage
 .project
 .pydevproject
 .idea/
 *.pyc
+htmlcov/
 
