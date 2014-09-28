@@ -1,8 +1,45 @@
 from unittest import TestCase
-from checkers.internals import Board, Piece, RED, BLACK
+from checkers.internals import Board, Piece, RED, BLACK, players, CheckersException
 
 
-class TestCheckers(TestCase):
+class TestPiece(TestCase):
+
+    def setUp(self):
+        self.piece_initials = ['r', 'b', 'R', 'B']
+
+    def test_piece_create(self):
+        for color in players:
+            created = Piece(color)
+            self.assertEqual(color, created.player)
+            self.assertEqual(False, created.king)
+            self.assertIsNone(created.board)
+            self.assertIsNone(created.location)
+
+    def test_piece_invalid_player(self):
+        with self.assertRaises(CheckersException):
+            Piece('yellow')
+
+    def test_repr_and_str(self):
+        for color in players:
+            color_initial = color[:1]
+            color_capital = color[:1].upper()
+            piece = Piece(color)
+            self.assertEqual(color_initial, repr(piece))
+            self.assertEqual(color_initial, str(piece))
+            piece.king = True
+            self.assertEqual(color_capital, repr(piece))
+            self.assertEqual(color_capital, str(piece))
+
+    def test_from_repr(self):
+        for letter in self.piece_initials:
+            piece = Piece.from_repr(letter)
+            player_initial = piece.player[:1]
+            self.assertEqual(letter.isupper(), piece.king)
+            self.assertEqual(letter.lower(), player_initial)
+            self.assertEquals(letter, repr(piece))
+
+
+class TestBoard(TestCase):
 
     def setUp(self):
         self.state = Board()
