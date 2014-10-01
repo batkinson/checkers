@@ -11,7 +11,7 @@ from zeroconf import Zeroconf, ServiceInfo
 import logging as log
 
 
-PRUNE_IDLE_SECS = 60 * 60  # 60 Minutes
+PRUNE_IDLE_SECS = 5 * 60  # 5 Minutes
 
 
 LIST, JOIN, NEW, LEAVE, QUIT, MOVE, SHUTDOWN, TURN, BOARD, SPECTATE = 'LIST', 'JOIN', 'NEW', 'LEAVE', 'QUIT', 'MOVE',\
