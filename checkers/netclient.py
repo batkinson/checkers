@@ -1,8 +1,8 @@
 from internals import Board, InvalidMoveException
 from socket import socket, AF_INET, SOCK_STREAM, TCP_NODELAY, IPPROTO_TCP, timeout, error
 from select import select
-from netserver import LEAVE, QUIT, SHUTDOWN, NEW, MOVE, JOIN, LIST, SPECTATE, TURN, BOARD
-from netserver import WAIT, WINNER, JOINED, LEFT, MOVED, CAPTURED, YOU_ARE, GAME_ID
+from threaded_server import LEAVE, QUIT, SHUTDOWN, NEW, MOVE, JOIN, LIST, SPECTATE, TURN, BOARD
+from threaded_server import WAIT, WINNER, JOINED, LEFT, MOVED, CAPTURED, YOU_ARE, GAME_ID
 import logging as log
 from StringIO import StringIO
 

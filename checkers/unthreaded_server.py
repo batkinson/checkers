@@ -4,10 +4,10 @@ import socket
 import select
 from StringIO import StringIO
 from functools import wraps
-from netserver import ServerPublisher, COMMANDS, SPECTATE, OK, ERROR
+from threaded_server import ServerPublisher, COMMANDS, SPECTATE, OK, ERROR
+from threaded_server import Game, ServerException, PRUNE_IDLE_SECS
 import logging as log
 from socket import timeout, error
-from netserver import Game, ServerException, PRUNE_IDLE_SECS
 from time import time
 
 
