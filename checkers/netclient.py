@@ -9,7 +9,7 @@ from StringIO import StringIO
 
 class StatusHandler:
 
-    def handle_game_id(self, player):
+    def handle_game_id(self, game_id):
         pass
 
     def handle_winner(self, player):
