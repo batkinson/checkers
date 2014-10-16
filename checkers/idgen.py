@@ -1,9 +1,9 @@
 from random import choice
 
-with open('nouns.txt', 'r') as nfile:
+with open('name-data/nouns.txt', 'r') as nfile:
     nouns = map(str.strip, nfile.readlines())
 
-with open('adjectives.txt', 'r') as afile:
+with open('name-data/adjectives.txt', 'r') as afile:
     adjectives = map(str.strip, afile.readlines())
 
 
