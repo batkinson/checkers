@@ -206,6 +206,8 @@ class Server(object):
         self.errored = []
         self.sockets_to_close = []
         self.handlers = {}
+        self.bind()
+        self.activate()
 
     def bind(self):
         """Binds the server's socket."""
@@ -290,8 +292,6 @@ class Server(object):
         raise ServerException('game not available')
 
     def serve_forever(self):
-        self.bind()
-        self.activate()
         self.start()
 
 
@@ -312,7 +312,7 @@ if __name__ == '__main__':
 
     def publish_server(server):
         server_publisher = ServerPublisher()
-        server_publisher.publish(server.host, server.port)
+        server_publisher.publish(server.server_address[0], server.server_address[1])
         atexit.register(server_publisher.shutdown)
 
     args = parse_arguments()
