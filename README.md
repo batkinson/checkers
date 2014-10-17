@@ -1,8 +1,15 @@
 # Checkers
 
-It's just what it sounds like: a simple checkers game. I started this project
-with a fellow Hacker School attendee to explore and gain experience with pygame
-and python software development tools like nosetest and travis-ci.
+A simple checkers game. I started this project with a fellow programmer at
+Hacker School to explore and gain experience with pygame and software
+engineering tools for the python ecosystem, like nosetest and travis-ci. It
+became a motif for learning a number of other things.
+
+I used this and my [nodejs-based web
+application](https://github.com/batkinson/checkers-html) to make a bootable game
+server with a raspberry pi. The pygame-based clients locate the game server
+using avahi/zeroconf by default. I also rewrote the game server to be
+single-threaded so it runs more efficiently under CPython.
 
 ![Game Screen](images/screenshot.png?raw=true)
 
@@ -11,7 +18,7 @@ and python software development tools like nosetest and travis-ci.
 To run this program, you'll need:
 
   * A working Python 2 environment
-  * PyGame
+  * PyGame (for the game client-only)
 
 ## Setup
 
@@ -36,7 +43,7 @@ Starting the game server is as simple as running:
 
 ```
 cd $CHECKERS_HOME/checkers
-./netserver.py
+./unthreaded_server.py --zeroconf
 ```
 
 Once the game server is started you can play games by running:
@@ -46,5 +53,9 @@ cd $CHECKERS/checkers
 ./checkers.py
 ```
 
-By default, the server starts on port 5000 and the game clients try to connect to a game server at 127.0.0.1 on port 
-5000.
+By default, the server starts on a random port. By specifying --zeroconf, the
+server publishes itself with an embedded zeroconf server. The pygame client will
+search for a server over zeroconf by default, so it should find it as long as
+you are running them from the same host. For clients to reliably find your
+server from other hosts, you should specify the --interface option when starting
+your server.
