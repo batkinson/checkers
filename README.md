@@ -49,7 +49,7 @@ cd $CHECKERS_HOME/checkers
 Once the game server is started you can play games by running:
 
 ```
-cd $CHECKERS/checkers
+cd $CHECKERS_HOME/checkers
 ./checkers.py
 ```
 
