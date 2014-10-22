@@ -1,5 +1,7 @@
 # Checkers
 
+[![Build Status](https://travis-ci.org/batkinson/checkers.svg?branch=master)](https://travis-ci.org/batkinson/checkers)
+
 A simple checkers game. I started this project with a fellow programmer at
 Hacker School to explore and gain experience with pygame and software
 engineering tools for the python ecosystem, like nosetest and travis-ci. It
