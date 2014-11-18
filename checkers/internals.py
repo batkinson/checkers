@@ -81,7 +81,6 @@ class Board:
         self._player_pieces = {BLACK: set(), RED: set()}
         self._loc_pieces = {}
         self.turn = BLACK
-        self.last_jumped_to = None
 
     @staticmethod
     def from_str(board_str):
