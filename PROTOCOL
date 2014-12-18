@@ -1,0 +1,60 @@
+# Checkers Network Protocol
+
+The following describes the essential elements of the checkers protocol. Clients
+send commands (CMD) and servers send status messages (STATUS) and command
+results (RESULT). Status messages can be received independent of a client
+issuing a command, such as when the turn changes, a move is made, a piece is
+captured or kinged, or the game is won. Results are only received after a
+command is issued, but relevant status messages are expected to be sent before
+an OK response.  The protocol is designed such that the game state can be
+determined by the initial game state plus the stream of status updates.
+Messages are terminated by newlines. Tokens are separated by spaces.
+
+CMD -> 
+       LIST 
+     | LIST SPECTATE
+     | NEW
+     | JOIN <GAMEID>
+     | SPECTATE <GAMEID>
+     | MOVE <GAMELOC> <GAMELOC>
+     | BOARD
+     | TURN
+     | LEAVE
+     | QUIT
+     | SHUTDOWN
+
+STATUS ->
+       STATUS LIST <GAMEIDS>
+     | STATUS LIST SPECTATE <GAMEIDS>
+     | STATUS GAME_ID <GAMEID>
+     | STATUS BOARD <BOARD>
+     | STATUS YOU_ARE <PLAYER>
+     | STATUS TURN <PLAYERTURN>
+     | STATUS JOINED <PLAYER>
+     | STATUS MOVED <GAMELOC> <GAMELOC>
+     | STATUS CAPTURED <GAMELOC>
+     | STATUS LEFT <PLAYER>
+     | STATUS KING <GAMELOC>
+     | STATUS WINNER <PLAYER>
+
+RESULT -> 
+       OK
+     | ERROR <ERRMSG>
+
+GAMEID -> [a-zA-Z0-9_]+
+
+GAMELOC -> [0-7] [0-7]
+
+GAMEIDS -> <GAMEID> <GAMEIDS>
+     | <EMPTY>
+
+BOARD -> ([*rRbB]{8}[|]){7}[*rRbB]{8}
+
+PLAYER ->
+       black
+       red
+
+PLAYERTURN ->
+       <PLAYER>
+     | waiting
+
